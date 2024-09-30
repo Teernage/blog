@@ -5,7 +5,7 @@ layout: home
 hero:
   name: '不一样的少年~'
   text: '前端技术'
-  tagline: 浏览器工作原理、js虚拟机、框架源码分析、算法、设计模式
+  tagline: 浏览器工作原理、js虚拟机、框架源码分析、算法、设计模式、组件库
   image:
     src: /img/logo.jpg
     alt: 不一样的少年
@@ -30,6 +30,10 @@ hero:
       text: 设计模式
       link: /markdown-examples
       target: _blank
+    - theme: alt
+      text: 组件库
+      link: /markdown-examples
+      target: _blank
 features:
   - title: 浏览器工作原理
     details: 1.前端性能优化的底层逻辑 <br/>  2.浏览器页面渲染的核心流程 <br/> 3.JavaScript运行机制解析<br/> 4.浏览器网络及安全机制解析
@@ -44,5 +48,7 @@ features:
   - title: 计算机网络
     details:
   - title: 性能监控
+    details:
+  - title: 组件库
     details:
 ---
