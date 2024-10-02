@@ -4,6 +4,9 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "不一样的少年~",
   base: '/blog/',
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }] // 添加 favicon  
+  ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -35,6 +38,7 @@ export default defineConfig({
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
             { text: '网络', link: '/docs/font/HowBrowsersWork/newtWork' },
+            { text: '浏览器缓存', link: '/docs/font/HowBrowsersWork/browserCache' },
           ]
         }
       ]
