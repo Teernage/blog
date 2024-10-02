@@ -41,7 +41,7 @@ Service Worker 能够操作的缓存是有别于浏览器内部的 memory cache 
 
 如果 Service Worker 没能命中缓存，一般情况会使用 fetch() 方法继续获取资源。这时候，浏览器就去 memory cache 或者 disk cache 进行下一次找缓存的工作了。注意：经过 Service Worker 的 fetch() 方法获取的资源，即便它并没有命中 Service Worker 缓存，甚至实际走了网络请求，也会标注为 from ServiceWorker。
 
-### 请求网络
+## 网络请求
 
 如果一个请求在上述 3 个位置都没有找到缓存，那么浏览器会正式发送网络请求去获取内容。之后容易想到，为了提升之后请求的缓存命中率，自然要把这个资源添加到缓存中去。具体来说：
 
@@ -143,14 +143,15 @@ Last-Modified: Mon, 10 Nov 2023 09:10:11 GMT
 如果文件是通过服务器动态生成的，那么该方法的更新时间永远是生成的时间，尽管文件可能没有变化，所以起不到缓存的作用。
 
 ##### Etag & If-None-Match
+
 为了解决上述问题，出现了一组新的字段 Etag 和 If-None-Match
 
 Etag 存储的是文件的特殊标识(一般都是 hash 生成的)，服务器存储着文件的 Etag 字段。之后的流程和 Last-Modified 一致，只是 Last-Modified 字段和它所表示的更新时间改变成了 Etag 字段和它所表示的文件 hash，把 If-Modified-Since 变成了 If-None-Match。服务器同样进行比较，命中返回 304, 不命中返回新资源和 200。
 
 Etag 的优先级高于 Last-Modified
 
+## 缓存总结
 
-### 缓存总结：
 当浏览器要请求资源时
 
 1. 调用 Service Worker 的 fetch 事件响应
@@ -162,7 +163,6 @@ Etag 的优先级高于 Last-Modified
 - 如果有强制缓存且未失效，则使用强制缓存，不请求服务器。这时的状态码全部是 200
 
 - 如果有强制缓存但已失效，使用对比缓存，比较后确定 304 还是 200
-
 
 4. 发送网络请求，等待网络响应
 
