@@ -33,6 +33,7 @@ export default defineConfig({
               text: '分层和合成机制', link: '/docs/font/HowBrowsersWork/layeredComposition'
             },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
+            { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
           ]
         }
       ]
