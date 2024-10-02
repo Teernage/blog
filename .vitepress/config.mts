@@ -29,6 +29,9 @@ export default defineConfig({
             { text: '浏览器中的js执行机制', link: '/docs/font/HowBrowsersWork/JsExecutionMechanism' },
             { text: 'v8工作原理', link: '/docs/font/HowBrowsersWork/v8' },
             { text: '消息队列和事件循环', link: '/docs/font/HowBrowsersWork/eventQuene' },
+            {
+              text: '分层和合成机制', link: '/docs/font/HowBrowsersWork/layeredComposition'
+            },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
           ]
         }
