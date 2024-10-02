@@ -34,6 +34,7 @@ export default defineConfig({
             },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
+            { text: '网络', link: '/docs/font/HowBrowsersWork/newtWork' },
           ]
         }
       ]
