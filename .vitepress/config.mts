@@ -39,6 +39,7 @@ export default defineConfig({
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
             { text: '网络', link: '/docs/font/HowBrowsersWork/newtWork' },
             { text: '浏览器缓存', link: '/docs/font/HowBrowsersWork/browserCache' },
+            { text: '浏览器渲染帧', link: '/docs/font/HowBrowsersWork/renderingFrames' },
           ]
         }
       ]
