@@ -40,6 +40,7 @@ export default defineConfig({
             { text: '浏览器渲染帧', link: '/docs/font/HowBrowsersWork/renderingFrames' },
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
+            { text: '浏览器安全', link: '/docs/font/HowBrowsersWork/BrowserSecurity' },
           ]
         }
       ]

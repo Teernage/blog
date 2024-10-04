@@ -224,4 +224,4 @@ console.log(3);
 let promise_ = new Promise((resolve,reject){ resolve(100)})
 ```
 
-<span style='color:red;font-weight:bold'>TODO async/await</span>
+<span style='color:red;font-weight:bold'>TODO promise a+规范原理</span>
