@@ -38,10 +38,10 @@ export default defineConfig({
               text: '分层和合成机制', link: '/docs/font/HowBrowsersWork/layeredComposition'
             },
             { text: '浏览器渲染帧', link: '/docs/font/HowBrowsersWork/renderingFrames' },
+            { text: '浏览器分配渲染进程的机制', link: '/docs/font/HowBrowsersWork/allocation' },
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
             { text: '浏览器安全', link: '/docs/font/HowBrowsersWork/BrowserSecurity' },
-            { text: '浏览器分配渲染进程的机制', link: '/docs/font/HowBrowsersWork/allocation' },
           ]
         }
       ]
