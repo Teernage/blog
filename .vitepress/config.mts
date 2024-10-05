@@ -41,6 +41,7 @@ export default defineConfig({
             { text: '页面性能优化', link: '/docs/font/HowBrowsersWork/performanceOptimization' },
             { text: 'Chrome开发者工具', link: '/docs/font/HowBrowsersWork/chromeDeveloperTools' },
             { text: '浏览器安全', link: '/docs/font/HowBrowsersWork/BrowserSecurity' },
+            { text: '浏览器分配渲染进程的机制', link: '/docs/font/HowBrowsersWork/allocation' },
           ]
         }
       ]
