@@ -112,3 +112,16 @@ https://googlechrome.github.io/devtools-samples/jank/
 
 综上，替换为 style.top 可以避免触发重排，减少计算开销，从而提升性能，使得页面流畅不卡顿。
 如果你想进一步优化，使用 requestAnimationFrame 来进行动画更新也是一种常见的性能优化手段。
+
+#### setTimeout 与 requestAnimationFrame
+
+setTimeout：是宏任务，有延时性，时效性没有 requestAnimationFrame 好。
+
+requestAnimationFrame：是基于帧调用回调的，根据屏幕的刷新率来，比如每秒 60 帧的，那屏幕每秒刷新 60 次，调用 60 次回调。
+
+任务优先级
+按照不同的任务类型来划分任务优先级，基于不同的场景来动态调整消息队列的优先级。
+
+然而，有一个问题就是，如果不断地有新的高优先级的任务进来，那么就会导致低优先级的任务一直得不到处理，即出现<span style='color:red'>任务饿死。因此，Chrome 进行了改变</span>，如果连续执行了一定数量的高优先级的任务，那么中间会执行一次低优先级的任务。
+
+<img src="/img/HowBrowsersWork/执行优先级.webp" alt="执行优先级"  />
