@@ -91,3 +91,35 @@ QUIC 协议（Quick UDP Internet Connections，<span style='color:red'> 快速 U
 1. 服务器和浏览器端都没有对 HTTP/3 提供比较完整的支持
 2. 部署 HTTP/3 也存在着非常大的问题。因为系统内核对 UDP 的优化远远没有达到 TCP 的优化程度，这也是阻碍 QUIC 的一个重要原因
 3. 中间设备僵化的问题。这些设备对 UDP 的优化程度远远低于 TCP，据统计使用 QUIC 协议时，大约有 3%～ 7% 的丢包率。
+
+### https
+
+<img src="/img/HowBrowsersWork/https.webp" alt="https"  />
+
+<span style='color:red'>安全层</span>有两个主要的职责：对发起 HTTP 请求的数据进行 <span style='color:red'>加密操作</span>和对接收到 HTTP 的内容进行 <span style='color:red'>解密操作</span>。
+
+https 流程
+
+1. 服务器将域名和服务器的公钥交给 ca 认证机构进行<span style='color:red'>数字签名</span>(ca 认证机构专有的私钥)得到数字证书
+2. 客户端输入 url，然后进行域名解析得到服务器的 ip 地址，进行 tcp 三次握手建立连接，客户端根据协议判断当前域名是 https 的话，就不会直接建立 http 连接，而是在此 tcp 连接的基础上进行 SSL/TLS 握手:向服务器发起数字证书预请求
+3. 服务器将数字证书发送给客户端
+4. 客户端会根据当前时间判断证书有没有过期，没有过期则将使用内嵌在操作系统的 ca 认证公钥来解密判断证书的有效性<span style='color:red'>（非对称加密 ca 公钥解密数字证书【ca 机构私钥加密】）</span>
+5. 如果证书有效，客户端则解密获取到证书中的服务器公钥和域名
+6. 客户端根据服务器公钥来加密一个密钥发送给服务器，服务器收到之后用服务器的私钥进行解密得到密钥，往后客户端和服务端的通信都是通过这个密钥来进行加密和解密<span style='color:red'>（对称加密）</span>
+
+而如果要在开发环境模拟 https 的流程的话，比如前端项目在本地进行 node 服务器部署的话，vite 项目需要用 vite 来配置 node 服务器私钥和数字证书，如下：
+
+```javascript
+// 这个key是服务器私钥 也是假的，只是给测试环境用，不然的话就是服务器私钥泄露了，真正的服务器私钥是
+// 只保存在后台服务器，安全性
+export default {
+  server: {
+    https: {
+      key: fs.readFileSync('/path/to/your/key.pem'), // 放置在public中的一个文件
+      cert: fs.readFileSync('/path/to/your/cert.pem'), // 放置在public中的一个文件中
+    },
+  },
+};
+```
+
+这样客户端发起 ssl/tls 握手的时候，node 服务器会将 vite 配置好的数字证书(如上的 cert)发送给客户端，客户端在验证证书的时效性之后再通过内嵌的 ca 公钥进行解密的到服务器公钥，然后用服务器公钥加密一个对称密钥发给 node 服务器，node 服务器再用 vite 中配置的服务器私钥(如上的 key)进行解密的到对称密钥，往后就都通过对称加密进行传输
