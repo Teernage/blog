@@ -49,7 +49,8 @@ export default defineConfig({
         {
           text: 'v8引擎',
           items: [
-            { text: '设计思想', link: '/docs/font/v8/designIdea' }
+            { text: '设计思想', link: '/docs/font/v8/designIdea' },
+            { text: '编译流水线', link: '/docs/font/v8/compile' }
           ]
         }
       ]
