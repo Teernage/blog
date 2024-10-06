@@ -16,7 +16,7 @@ hero:
       target: _blank
     - theme: alt
       text: v8引擎
-      link: /api-examples
+      link: /docs/font/v8/designIdea
       target: _blank
     - theme: brand
       text: 框架源码分析

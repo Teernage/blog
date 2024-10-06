@@ -44,6 +44,14 @@ export default defineConfig({
             { text: '浏览器安全', link: '/docs/font/HowBrowsersWork/BrowserSecurity' },
           ]
         }
+      ],
+      '/docs/font/v8': [
+        {
+          text: 'v8引擎',
+          items: [
+            { text: '设计思想', link: '/docs/font/v8/designIdea' }
+          ]
+        }
       ]
     },
 
