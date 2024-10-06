@@ -119,6 +119,22 @@
 
 参考资料：https://v8.dev/blog/fast-properties
 
+#### 快属性和慢属性与常规属性和索引属性之间的区别
+
+快属性和慢属性与常规属性和索引属性之间的区别是<span style='color:red'>不同维度</span>的分化，而不是简单的优化关系。
+
+常规属性和索引属性:
+
+常规属性是指对象中定义的所有属性，通常是通过对象字面量或构造函数创建的。
+索引属性是指使用数字索引的属性，通常用于数组等数据结构。
+快属性和慢属性:
+
+快属性是指在 V8 引擎中，特定的常规属性被优化存储在对象本身的线性数据结构中，以提高访问效率。快属性通常是那些被频繁访问的属性，V8 默认最多存储 10 个快属性。
+慢属性则是指存储在对象独立的非线性数据结构（字典）中的属性，通常用于存储不常用或动态变化的属性。
+因此，快属性和慢属性是基于性能和存储方式的优化，而常规属性和索引属性则是基于属性名称的类型不同的分类。快属性可以是常规属性的一种优化形式，但并不是所有的常规属性都是快属性。
+
+总结来说，快属性和慢属性的区分主要是为了优化性能，而常规属性和索引属性的区分则是基于属性的定义方式。两者之间并没有直接的从属关系，而是各自独立的分类维度。
+
 ## 函数表达式：涉及大量概念，函数表达式到底该怎么学？
 
 ### 变量提升
@@ -163,3 +179,117 @@ var foo = function () {
 如果在函数表达式后面加上<span style='color:red'>()</span>，就被称为立即调用函数表达式
 
 因为函数立即表达式也是表达式，所以不会创建函数对象，就不会污染环境
+
+### 原型链：V8 是如何实现对象继承的？
+
+- 作用域链是沿着函数的作用域一级一级来查找变量的
+- 原型链是沿着对象的原型一级一级来查找属性的
+  <span style='color:red'>js</span> 中实现继承，是将<span style='color:red'>`__proto__`</span>指向对象，但是不推荐使用，主要原因是：
+
+- 这是隐藏属性，不是标准定义的
+- 使用该属性会造成严重的性能问题
+
+### 继承
+
+1. 用构造函数实现继承：
+
+```javascript
+function DogFactory(color) {
+  this.color = color;
+}
+DogFactory.prototype.type = 'dog';
+const dog = new DogFactory('Black');
+dog.hasOwnProperty('type'); // false
+```
+
+2. ES6 之后可以通过 Object.create 实现继承
+
+```javascript
+const animalType = { type: 'dog' };
+const dog = Object.create(animalType);
+dog.hasOwnProperty('type'); // false
+```
+
+### new 背后做了这些事情
+
+1. 帮你在内部创建一个临时对象
+2. 将临时对象的 **proto** 设置为构造函数的原型，构造函数的原型统一叫做 prototype
+3. return 临时对象
+
+```javascript
+function NEW(fn) {
+  return function () {
+    var o = { __proto__: fn.prototype };
+    fn.apply(o, arguments);
+    return o;
+  };
+}
+```
+
+## `__proto__`、prototype、constructor 区别
+
+<span style='color:red'>prototype</span>是函数的独有的；<span style='color:red'>`__proto__`</span> 和 <span style='color:red'>constructor</span> 是对象独有的
+
+由于函数也是对象，所以函数也有<span style='color:red'> `__proto__`</span> 和 <span style='color:red'>constructor</span>
+
+<span style='color:red'>constructor</span> 是函数；<span style='color:red'>prototype</span> 和 <span style='color:red'>`__proto__`</span> 是对象
+
+```javascript
+typeof Object.__proto__; // "object"
+typeof Object.prototype; // "object"
+typeof Object.constructor; // "function"
+```
+
+```javascript
+let obj = new Object();
+obj.__proto__ === Object.prototype;
+obj.constructor === Object;
+```
+
+<span style='color:red'>obj</span> 是 <span style='color:red'>Object</span> 的实例，所以 <span style='color:red'>obj.constructor === Object</span>
+
+<span style='color:red'>obj</span>的是对象，<span style='color:red'>Object</span>是函数，所以<span style='color:red'> obj.`__proto__` === Object.prototype</span>
+
+<img src="/img/v8/原型链.webp" alt="原型链"  />
+在上图中：
+Star 是构造函数。
+Star.prototype 是 Star 的原型对象。
+ldh 是通过 Star 构造函数创建的对象实例。
+现在，让我们解释图中的关系：
+
+ldh 对象实例通过 `__proto__`链接到 Star 的原型对象（Star.prototype）。
+Star.prototype 通过 `__proto__` 链接到 Object 的原型对象（Object.prototype）。
+Object.prototype 的 `__proto__` 指向 null。
+如果我们尝试访问 ldh.shine()，JavaScript 引擎会：
+
+首先在 ldh 对象本身查找 shine 方法。
+如果没找到，就去 ldh.`__proto__`（即 Star.prototype）中查找。
+在 Star.prototype 中找到 shine 方法并执行。
+如果我们尝试访问 ldh.toString()：
+
+在 ldh 对象中找不到。
+在 Star.prototype 中也找不到。
+最后在 Object.prototype 中找到 toString 方法并执行。
+这个例子展示了图中描述的原型链结构，说明了对象、构造函数和原型之间的关系，以及 JavaScript 如何通过这个链条来查找属性和方法。
+
+## 作用域链：V8 是如何查找变量的？
+
+全局作用域是在<span style='color:red'>V8</span>启动过程中就创建了，且一直保存在内存中不会被销毁的，直至<span style='color:red'>V8</span>退出
+
+而函数作用域是在执行该函数时创建的，当函数执行结束之后，函数作用域就随之被销毁掉了
+
+因为<span style='color:red'>JavaScript</span>是基于词法作用域的，词法作用域就是指，查找作用域的顺序是按照函数定义时的位置来决定的。
+
+词法作用域是静态作用域，根据函数在代码中的位置来确定的，作用域是在声明函数时就确定好了
+
+动态作用域链是基于调用栈的，不是基于函数定义的位置的，可以认为<span style='color:red'>this</span>是用来弥补 JavaScript 没有动态作用域特性的,this 是运行时决定的。
+
+## 类型转换：V8 是怎么实现 1+“2”的？
+
+<span style='color:red'>V8</span>会提供了一个<span style='color:red'>ToPrimitive</span>方法，其作用是将<span style='color:red'>a</span>和<span style='color:red'>b</span>转换为原生数据类型
+
+1. 先检测该对象中是否存在<span style='color:red'>valueOf</span>方法，如果有并返回了原始类型，那么就使用该值进行强制类型转换
+
+2. 如果<span style='color:red'>valueOf</span>没有返回原始类型，那么就使用 toString 方法的返回值
+
+3. 如果<span style='color:red'>valueOf</span>和<span style='color:red'>toString</span>两个方法都不返回基本类型值，便会触发一个 <span style='color:red'>TypeError</span>的错误。
