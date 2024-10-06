@@ -293,3 +293,8 @@ Object.prototype 的 `__proto__` 指向 null。
 2. 如果<span style='color:red'>valueOf</span>没有返回原始类型，那么就使用 toString 方法的返回值
 
 3. 如果<span style='color:red'>valueOf</span>和<span style='color:red'>toString</span>两个方法都不返回基本类型值，便会触发一个 <span style='color:red'>TypeError</span>的错误。
+
+对于表达式 1 + "2", V8 引擎会首先尝试将操作数转换为原始数据类型(primitive)。这个过程就是通过 ToPrimitive 方法实现的。
+1 是原始数字类型,不需要转换。
+"2" 是原始字符串类型,也不需要转换。
+所以最终 V8 引擎会将 1 和 "2" 拼接成字符串 "12" 作为结果返回。
