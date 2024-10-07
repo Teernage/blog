@@ -5,8 +5,8 @@ export default defineConfigWithTheme({
   extends: escookConfig,
   title: "不一样的少年~",
   base: '/blog/',
+  appearance: 'dark',
   themeConfig: {
-    appearance: 'dark',
     musicBall: {
       src: '/blog/mp3/永远同在.mp3',
       autoplay: true,
