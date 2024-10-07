@@ -1,14 +1,17 @@
-import { defineConfig } from 'vitepress'
+import { defineConfigWithTheme } from 'vitepress'
+import escookConfig from '@escook/vitepress-theme/config'
 
-// https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default defineConfigWithTheme({
+  extends: escookConfig,
   title: "不一样的少年~",
   base: '/blog/',
-  head: [
-    ['link', { rel: 'icon', href: '/favicon.ico' }] // 添加 favicon  
-  ],
   themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
+    appearance: 'dark',
+    musicBall: {
+      src: '/blog/mp3/永远同在.mp3',
+      autoplay: true,
+      loop: true,
+    },
     nav: [
       { text: '首页', link: '/' },
       { text: '浏览器工作原理', link: '/docs/font/HowBrowsersWork/history' },
