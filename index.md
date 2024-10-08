@@ -7,7 +7,7 @@ hero:
   text: '关注前端技术'
   tagline: 浏览器工作原理、js虚拟机、框架源码分析、算法、设计模式、组件库
   image:
-    src: /img/logo.jpg
+    src: /img/avatar.webp
     alt: 不一样的少年
   actions:
     - theme: brand
