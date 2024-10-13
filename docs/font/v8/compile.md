@@ -672,3 +672,63 @@ Return
 #### 结论：
 
 先分析了 V8 是如何生成字节码的，有了字节码，V8 的解释器就可以解释执行字节码了。通常有两种架构的解释器，基于栈的和基于寄存器的。基于栈的解释器会将一些中间数据存放到栈中，而基于寄存器的解释器会将一些中间数据存放到寄存器中。由于采用了不同的模式，所以字节码的指令形式是不同的。而目前版本的 V8 是基于寄存器的，所以又分析了基于寄存器的解释器的架构，这些寄存器和 CPU 中的寄存器类似，不过这里有一个特别的寄存器，那就是累加器。在操作过程中，一些中间结果都默认放到累加器中，比如 Ldar a1 就是将第二个参数加载到累加器中，Star r0 是将累加器中的值写入到 r0 寄存器中，Return 就是返回累加器中的数值。理解了累加器的重要性，我们又分析了一些常用字节码指令，这包括了 Ldar、Star、Add、LdaSmi、Return，了解了这些指令是怎么工作的之后，就可以完整地分析一段字节码的工作流程了。
+
+## 隐藏类：如何在内存中快速查找对象属性？
+
+- 为了提升对象属性访问速度，引入隐藏类
+- 为了加速运算引入内联缓存
+
+### 为什么静态语言效率高
+
+<span style='color:red'>JavaScript</span> 在运行时，对象的属性可以被修改，所以<span style='color:red'> V8</span>在解析对象时，比如：解析 <span style='color:red'> start.x</span> 时，它不知道 <span style='color:red'> start</span> 中是否有 <span style='color:red'> x </span>，也不知道 <span style='color:red'> x </span> 相对于 <span style='color:red'> start </span> 的偏移量是多少，简单说 <span style='color:red'> V8</span> 不知道 <span style='color:red'> start </span> 对象的具体行状
+
+所以当 <span style='color:red'>JavaScript</span> 查询 <span style='color:red'>start.x</span> 时，过程非常慢
+
+静态语言，比如 <span style='color:red'>C++</span> 在声明对象之前需要定义该对象的结构（行状），执行之前会被编译，编译的时候，行状是固定的，也就是说在执行过程中，对象的形状是无法改变的
+
+所以当<span style='color:red'>C++</span>查询 <span style='color:red'>start.x</span> 使，编译器在编译的时候，会直接将 <span style='color:red'>x</span> 相对于 <span style='color:red'>start</span> 对象的地址写进汇编指令中，查询时直接读取 x 的地址，没有查找环节
+
+### 隐藏类
+
+<span style='color:red'>V8</span> 为了做到这点，做了两个假设：
+
+1. 对象创建好了之后不会添加新的属性
+2. 对象创建好了之后也不会删除属性
+
+然后 <span style='color:red'>V8</span> 为每个对象创建一个隐藏类，记录基础的信息
+
+1. 对象中所包含的所有属性
+2. 每个属性相对于对象的偏移量。
+
+在 <span style='color:red'>V8</span> 中隐藏类有称为 <span style='color:red'>map</span>，即每个对象都有一个 <span style='color:red'>map</span> 属性，指向内存中的隐藏类
+
+有了 <span style='color:red'>map</span> 之后，当访问 <span style='color:red'>start.x</span> 时，<span style='color:red'>V8</span> 会先去 <span style='color:red'>start.map </span>中查询 <span style='color:red'>x</span> 相对 <span style='color:red'>start</span> 的偏移量，然后将 <span style='color:red'>start</span> 对象的地址加上偏移量就得到了<span style='color:red'> x </span>属性的值在内存中的地址了
+
+#### 作为一个基于寄存器架构的虚拟机, V8 为什么会将对象和对象的隐藏类存储在内存中,而不是完全存储在寄存器中?
+
+1. <span style='color:red'>寄存器资源有限</span>:寄存器是一种有限的资源,无法容纳所有的对象属性信息。将属性信息存储在内存中的隐藏类中,可以更好地利用内存资源。对于简单的基本类型变量(如数字、布尔值等),V8 会将它们直接存储在寄存器中。这是最高效的存储方式。
+
+2. <span style='color:red'>对象属性的动态性</span>:对象的属性可能会动态添加或删除,这种动态性很难在寄存器中高效地表示和管理。而将属性信息存储在隐藏类中,可以更好地应对对象属性的动态变化。 所以 V8 会将对象的属性信息(如属性名、属性值等)则会存储在内存中的隐藏类(map)中,而不是直接存储在寄存器中，而寄存器只是存储对象的内存地址
+
+3. <span style='color:red'>优化访问性能</span>:通过将对象指针存储在寄存器中,再根据隐藏类中的信息访问属性,可以在保持寄存器访问速度的同时,也能够对对象属性进行更多的优化。
+
+v8 堆内存中的对象由两部分组成：
+
+1. 对象指针：存储在寄存器中，指向对象在内存中的地址
+2. 隐藏类(map):存储在内存中,记录了对象的属性信息,包括属性名、属性值以及属性在对象中的偏移量等。
+
+所以当访问对象的属性时,V8 会先从寄存器中读取对象的指针(对象的内存地址),根据这个对象指针在内存中找到对应的对象，然后读该对象的隐藏类(map)。隐藏类记录了这个对象的所有属性信息。根据隐藏类中记录的属性信息,计算出要访问的属性在内存中的具体位置。最后,根据计算出的位置,从内存中读取出属性的值。
+
+##### 如果两个对象行状相同，V8 会为其复用同一个隐藏类：
+
+- 减少隐藏类的创建次数，也间接加速了代码的执行速度
+- 减少了隐藏类的存储空间
+
+两个对象的形状相同，要满足：
+
+- 相同的属性名称
+- 相同的属性顺序
+- 相同的属性类型
+- 相等的属性个数
+
+如果动态改变了对象的行状，<span style='color:red'>V8</span> 就会重新构建新的隐藏类
