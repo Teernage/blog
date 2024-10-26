@@ -92,6 +92,7 @@ export default defineConfigWithTheme({
             { text: '编译流水--代码执行过程', link: '/docs/font/v8/codeExecutionProcess' },
             { text: '编译流水--v8解析编译', link: '/docs/font/v8/parsingCompilation' },
             { text: '编译流水--v8对象结构与优化', link: '/docs/font/v8/objectOptimization' },
+            { text: '事件循环和垃圾回收', link: '/docs/font/v8/eventLoopAndGarbageCollection' },
           ],
         },
       ],
