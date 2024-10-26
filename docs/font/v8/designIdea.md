@@ -1,6 +1,6 @@
 # 设计思想
 
-## 如何学习谷歌高性能 JavaScript 引擎 V8？
+## V8 引擎概述
 
 ### <span style='color:red'>V8</span> 主要涉及三个技术：编译流水线、事件循环系统、垃圾回收机制
 
@@ -68,7 +68,9 @@
 - <span style='color:red'>JavaScript</span> 对象在运行时可能会被改变，这段优化后的热点代码就失效了
 - 进行反优化操作，给到解释器解释执行
 
-## 函数即对象
+## V8 中的对象和属性处理
+
+### 函数即对象
 
 函数是 js 中一等公民，因为函数可以赋值(赋值给变量)，可以作为参数传递，可以作为返回值，函数可以拥有属性和方法
 
@@ -88,7 +90,7 @@
 
 参考资料：https://v8.dev/blog/react-cliff
 
-## 快属性和慢属性：V8 是怎样提升对象属性访问速度的？
+### 快属性和慢属性：V8 是怎样提升对象属性访问速度的？
 
 <span style='color:red'>V8</span> 在实现对象存储时，没有完全采用字典的存储方式，因为字典是非线性的数据结构，查询效率会低于线性的数据结构
 
@@ -135,7 +137,7 @@
 
 总结来说，快属性和慢属性的区分主要是为了优化性能，而常规属性和索引属性的区分则是基于属性的定义方式。两者之间并没有直接的从属关系，而是各自独立的分类维度。
 
-## 函数表达式：涉及大量概念，函数表达式到底该怎么学？
+## V8 中的函数和作用域
 
 ### 变量提升
 
@@ -170,7 +172,7 @@ var foo = function () {
 
 在编译阶段将所有的变量提升到作用域的过程称为<span style='font-weight:bold'>变量提升</span>
 
-## 立即执行函数
+### 立即执行函数
 
 <span style='color:red'>js</span> 的圆括号 <span style='color:red'>()</span> 可以在中间放一个表达式
 
@@ -179,6 +181,20 @@ var foo = function () {
 如果在函数表达式后面加上<span style='color:red'>()</span>，就被称为立即调用函数表达式
 
 因为函数立即表达式也是表达式，所以不会创建函数对象，就不会污染环境
+
+### 作用域链：V8 是如何查找变量的？
+
+全局作用域是在<span style='color:red'>V8</span>启动过程中就创建了，且一直保存在内存中不会被销毁的，直至<span style='color:red'>V8</span>退出
+
+而函数作用域是在执行该函数时创建的，当函数执行结束之后，函数作用域就随之被销毁掉了
+
+因为<span style='color:red'>JavaScript</span>是基于词法作用域的，词法作用域就是指，查找作用域的顺序是按照函数定义时的位置来决定的。
+
+词法作用域是静态作用域，根据函数在代码中的位置来确定的，作用域是在声明函数时就确定好了
+
+动态作用域链是基于调用栈的，不是基于函数定义的位置的，可以认为<span style='color:red'>this</span>是用来弥补 JavaScript 没有动态作用域特性的,this 是运行时决定的。
+
+## V8 中的原型和继承
 
 ### 原型链：V8 是如何实现对象继承的？
 
@@ -226,7 +242,7 @@ function NEW(fn) {
 }
 ```
 
-## `__proto__`、prototype、constructor 区别
+### `__proto__`、prototype、constructor 区别
 
 <span style='color:red'>prototype</span>是函数的独有的；<span style='color:red'>`__proto__`</span> 和 <span style='color:red'>constructor</span> 是对象独有的
 
@@ -272,19 +288,9 @@ Object.prototype 的 `__proto__` 指向 null。
 最后在 Object.prototype 中找到 toString 方法并执行。
 这个例子展示了图中描述的原型链结构，说明了对象、构造函数和原型之间的关系，以及 JavaScript 如何通过这个链条来查找属性和方法。
 
-## 作用域链：V8 是如何查找变量的？
+## V8 类型系统
 
-全局作用域是在<span style='color:red'>V8</span>启动过程中就创建了，且一直保存在内存中不会被销毁的，直至<span style='color:red'>V8</span>退出
-
-而函数作用域是在执行该函数时创建的，当函数执行结束之后，函数作用域就随之被销毁掉了
-
-因为<span style='color:red'>JavaScript</span>是基于词法作用域的，词法作用域就是指，查找作用域的顺序是按照函数定义时的位置来决定的。
-
-词法作用域是静态作用域，根据函数在代码中的位置来确定的，作用域是在声明函数时就确定好了
-
-动态作用域链是基于调用栈的，不是基于函数定义的位置的，可以认为<span style='color:red'>this</span>是用来弥补 JavaScript 没有动态作用域特性的,this 是运行时决定的。
-
-## 类型转换：V8 是怎么实现 1+“2”的？
+### 类型转换：V8 是怎么实现 1+“2”的？
 
 <span style='color:red'>V8</span>会提供了一个<span style='color:red'>ToPrimitive</span>方法，其作用是将<span style='color:red'>a</span>和<span style='color:red'>b</span>转换为原生数据类型
 

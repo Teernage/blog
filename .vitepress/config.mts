@@ -88,7 +88,10 @@ export default defineConfigWithTheme({
           text: 'v8引擎',
           items: [
             { text: '设计思想', link: '/docs/font/v8/designIdea' },
-            { text: '编译流水线', link: '/docs/font/v8/compile' },
+            { text: '编译流水--运行环境', link: '/docs/font/v8/runtime' },
+            { text: '编译流水--代码执行过程', link: '/docs/font/v8/codeExecutionProcess' },
+            { text: '编译流水--v8解析编译', link: '/docs/font/v8/parsingCompilation' },
+            { text: '编译流水--v8对象结构与优化', link: '/docs/font/v8/objectOptimization' },
           ],
         },
       ],
