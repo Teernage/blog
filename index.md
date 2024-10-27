@@ -20,7 +20,7 @@ hero:
       target: _blank
     - theme: brand
       text: 框架源码分析
-      link: /markdown-examples
+      link: /docs/font/vue/artOfBalance
       target: _blank
     - theme: alt
       text: 算法

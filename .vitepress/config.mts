@@ -96,6 +96,15 @@ export default defineConfigWithTheme({
           ],
         },
       ],
+      '/docs/font/vue': [
+        {
+          text: 'vue框架原理分析',
+          items: [
+            { text: '权衡的艺术', link: '/docs/font/v8/artOfBalance' },
+
+          ],
+        },
+      ],
     },
 
     socialLinks: [
