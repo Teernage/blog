@@ -100,7 +100,10 @@ export default defineConfigWithTheme({
         {
           text: 'vue框架原理分析',
           items: [
-            { text: '权衡的艺术', link: '/docs/font/v8/artOfBalance' },
+            { text: '权衡的艺术', link: '/docs/font/vue/artOfBalance' },
+            { text: '框架设计的核心要素', link: '/docs/font/vue/frameworkCore' },
+            { text: 'vue3设计思路', link: '/docs/font/vue/designConcept' },
+            { text: '响应式系统', link: '/docs/font/vue/reactiveSystem' },
 
           ],
         },
