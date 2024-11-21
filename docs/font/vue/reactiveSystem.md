@@ -479,3 +479,84 @@ function createDep(effects) {
 ```
 
 <img src="/img/vue/trigger函数.webp"  alt="trigger函数"  />
+
+## 调度系统(scheduler)
+
+### 响应性的可调度性
+
+当数据更新，触发副作用函数重新执行时，有能力决定：副作用函数(effect)执行的时机、次数以及方式，比如实现了 scheduler 之后，下次触发 effect 回调执行就不会直接执行 effect 回调，而是执行 scheduler 对象里的方法，我们可以在这个 scheduler 里作一些处理
+
+```javaScript
+
+// 创建一个响应式对象
+const state = reactive({
+  count: 0
+});
+
+// 定义调度器
+const scheduler = (fn) => {
+  console.log('调度器触发');
+  setTimeout(fn, 1000); // 延迟1秒执行副作用
+};
+
+// 创建副作用
+effect(() => {
+  console.log(`当前计数: ${state.count}`);
+}, {
+  scheduler // 使用定义的调度器
+});
+
+
+state.count++; // 每次更新时，不会立即执行副作用，而是调用调度器
+state.count++; // 再次更新，仍然是由调度器控制，还是调用调度器
+```
+
+## 计算属性(computed)
+
+本质：一个属性值，当依赖的响应式数据发生变化时，重新计算
+
+只有当读取计算属性的值时，才会执行 effectFn 并将其结果作为返回值返回
+
+<span style='color:red'>实现原理</span>：
+1.effect 副作用函数 2. 依赖收集和触发 3.采用 scheduler 调度系统
+
+- 我们新增了两个变量 \_value 和 dirty，其中 value 用来缓存上一次计算的值，而 dirty 是一个标识，代表是否需要重新计算。当我们通过 sumRes.value 访问值时，执行 sumRes 实例的 get value 方法获取 computed 对象的值(返回\_value 属性的值)，只有当 dirty 为 true 时才会调用 effectFn 重新计算值，否则直接使用上一次缓存在 \_value 中的值。这样无论我们访问多少次 sumRes.value，都只会在第一次访问时进行真正的计算，后续访问都会直接读取缓存的 value 值。
+- 我们为 effect 添加了 scheduler 调度器函数，它会在 getter 函数中所依赖的响应式数据变化时执行，这样我们在 scheduler 函数内将 dirty 重置为 true，当下一次访问 sumRes.value 时，就会重新调用 effectFn 计算值，这样就能够得到预期的结果了。
+
+<img src="/img/vue/computed原理.webp"  alt="computed原理"  />
+
+```javaScript
+export class ComputedRefImpl {
+    public dep: any; // 存储依赖的对象集合，computed 依赖的 effect 通过这个集合管理
+    public effect: ReactiveEffect; // effect 响应式对象，负责计算 computed 值
+     //_dirty:当前的值是否需要更新、如果为true，那么说明读取computed值的需要更新、本来是直接更新的，但是competed的特性是:只有在读取computed响应式对象。value的时候才触发更新effect副作用回调，所以才用dirty变量来标记
+    private _dirty: boolean;
+    private _value: any; // 存储 computed 的当前值
+
+    constructor(getter) {
+        this._dirty = true; // 初始状态为需要更新
+        this.dep = createDep(); // 创建一个依赖集合
+        this.effect = new ReactiveEffect(getter, () => {
+        // scheduler 只要触发了这个函数说明响应式对象的值发生改变了，那么就解锁，后续在调用 get 的时候就会重新执行effect回调(如:computed(()=>{return obj.a })即computed方法中的回调函数)，所以会得到最新的值 if (this._dirty) return; // 如果已经标记为 dirty，直接返回
+             this._dirty = true; // 标记为需要更新
+             triggerRefValue(this); // 触发更新，更新依赖项
+        });
+    }
+
+    /**
+     * 获取 computed 对象的值
+     */
+    get value() {
+        trackRefValue(this); // 收集依赖
+        // 仅在 _dirty 为 true 时更新值
+        if (this._dirty) {
+            // 锁上，只可以调用一次 当数据改变的时候才会解锁 这里就是缓存实现的核心 解锁是在 scheduler 里面做的
+            this._dirty = false; // 重置 _dirty 状态
+            this._value = this.effect.run(); // 执行 effect 并更新 _value
+        }
+        return this._value; // 返回当前值
+    }
+}
+```
+
+实现 ComputedRefImpl 类来实现 getter 依赖收集的，使用 var c = computed(<span style='color:red'>()=>{return obj.a}</span>)这个 API 的时候，这个标红的副作用回调会作为入参交给 Vue 内部的 ReactiveEffect，等到执行 c.value 的时候触发 ComputedRefImpl 实例的 get value 方法，这时候才执行 ReactiveEffect 实例的 run 方法(即执行标红的回调<span style='color:red'>()=>{return obj.a}</span>), 执行标红的回调的时候读取响应式对象的属性 obj.a 的时候，这个标红的回调(即当前的 activeEffect)就会被 obj.a 这个依赖集合所收集，不过当 obj.a 发生改变的时候，不会再触发标红的回调了， 因为给 ReactiveEffect 实例传了 scheduler 调度器，所以当触发 obj.a 的改变时，执行的是调度器里的内容(修改 dirty 变量),这样等到下次执行 c.value 的时候，触发 get 方法就会重新执行 ReactiveEffect 实例的 run 方法(那么就会立即触发执行标红的 effect 回调即<span style='color:red'>()=>{return obj.a}</span>)。这样 c.value 的值就是最新的
