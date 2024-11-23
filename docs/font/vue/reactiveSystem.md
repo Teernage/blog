@@ -261,7 +261,10 @@ export function effect(fn, options = {}) {
     const _effect = new ReactiveEffect(fn, options.scheduler); // 创建 ReactiveEffect 实例
     // 将用户传递过来的值合并到_effect实例上
     extend(_effect, options); // 扩展选项
-    _effect.run(); // 执行副作用函数
+    // 如果不是 lazy，就立即执行副作用函数
+    if (!options.lazy) {
+        _effect.run(); // 立即执行
+    }
 
     // 返回可以由用户停止的 runner 函数
     const runner = _effect.run.bind(_effect);
@@ -560,3 +563,62 @@ export class ComputedRefImpl {
 ```
 
 实现 ComputedRefImpl 类来实现 getter 依赖收集的，使用 var c = computed(<span style='color:red'>()=>{return obj.a}</span>)这个 API 的时候，这个标红的副作用回调会作为入参交给 Vue 内部的 ReactiveEffect，等到执行 c.value 的时候触发 ComputedRefImpl 实例的 get value 方法，这时候才执行 ReactiveEffect 实例的 run 方法(即执行标红的回调<span style='color:red'>()=>{return obj.a}</span>), 执行标红的回调的时候读取响应式对象的属性 obj.a 的时候，这个标红的回调(即当前的 activeEffect)就会被 obj.a 这个依赖集合所收集，不过当 obj.a 发生改变的时候，不会再触发标红的回调了， 因为给 ReactiveEffect 实例传了 scheduler 调度器，所以当触发 obj.a 的改变时，执行的是调度器里的内容(修改 dirty 变量),这样等到下次执行 c.value 的时候，触发 get 方法就会重新执行 ReactiveEffect 实例的 run 方法(那么就会立即触发执行标红的 effect 回调即<span style='color:red'>()=>{return obj.a}</span>)。这样 c.value 的值就是最新的
+
+## watch 的实现原理
+
+- 本质: 观测一个响应式数据，当数据发生变化时，通知并执行响应的回调函数(在 scheduler 中实现副作用函数的执行)
+
+- 实现原理：1.effect <span style='color:red'>惰性执行</span> 2. 依赖收集和触发 3.scheduler 调度系统
+
+watch 的原理使用了 effect 函数的惰性执行和调度器，情性执行实现 watch 使用的时候不会立即执行副作用函数（即下方的 getter），调度器实现了响应式变量发生变化时，不再是立即触发 getter 副作用回调的执行，而是触发 scheduler 的执行，然后在 scheduler 里执行用户传入的 cb，这样就实现了 watch
+
+### 惰性执行
+
+#### lazy 选项的定义与作用
+
+- 作用: 当 lazy 设置为 true 时，effect 函数不会在创建时立即执行。相反，它会返回一个执行函数（effectFn），只有在后续明确调用 effectFn 时，才会运行这个 effect 函数
+
+<img src="/img/vue/watch源码.webp" alt="watch源码"  />
+
+#### watch 源码：
+
+```javaScript
+/*
+watch的原理使用了effect函数的惰性执行和调度器，情性执行实现watch使用的时候不会立即执行副作用函数（即下方的getter），调度器实现了响应式变量发生变化时，不再是立即触发getter副作用回调的执行，而是触发scheduler的执行，然后在scheduler里执行用户传入的cb，这样就实现了watch
+* @param source 监听，可以是对象或者函数
+* gparam cb 用户传递的callback 监听对象source发生变化的时候触发schduler，执行cb
+*/
+function watch(source, cb) {
+    let getter;
+    //如果是source表示是getter，可以直接赋值
+    if (typeof source === "function") {
+        getter = source;
+    }else {
+        getter = () => traverse(source); // 深度遍历对象
+    }
+
+    let oldValue, newValue;
+    const effectFn = effect(
+         () => getter(), // 这个就是传递的 fn
+        // 下边这个是 option 开启了 lazy 特性和 scheduler 调度器来控制用户传递的第二个属性 callback 何时执行
+         {
+            // 开启 lazy 选项，将返回值存储到 effectFn 中以便于之后手动调用
+            lazy: true,
+            scheduler() {
+              newValue = effectFn(); // 值变化时再次运行 effect 函数，获取新值
+             cb(newValue, oldValue);
+             // 更新旧值，不然下次得到的是错误的旧值
+             oldValue = newValue;
+         }
+  }
+  // 手动调用副作用函数，拿到的值是旧值
+  oldValue = effectFn();
+)
+
+
+    // 手动执行一次以获取初始值
+    oldValue = effectFn();
+}
+```
+
+watch 源码中，effect 函数中开启了 lazy 属性为 true，而且传入了 scheduler 调度器，这样当执行 effect 函数的时候，不会立即执行副作用回调，而是返回一个执行函数（effectFn），只有在后续明确调用 effectFn 时，才会运行这个 effect 函数。这样就实现了惰性执行，在 watch 函数中手动控制用户传入的 effct 副作用函数的执行时机，这样就可以实现 oldValue 和 newValue 的获取，从而传递给用户传入的回调函数 cb，最终实现了 watch 的功能
