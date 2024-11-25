@@ -104,6 +104,8 @@ export default defineConfigWithTheme({
             { text: '框架设计的核心要素', link: '/docs/font/vue/frameworkCore' },
             { text: 'vue3设计思路', link: '/docs/font/vue/designConcept' },
             { text: '响应式系统', link: '/docs/font/vue/reactiveSystem' },
+            { text: '非原始值的响应式方案', link: '/docs/font/vue/nonPrimitiveReactive' },
+            { text: '原始值的响应式方案', link: '/docs/font/vue/primitiveReactive' },
 
           ],
         },
