@@ -1,5 +1,7 @@
 # 非原始值的响应式方案
 
+<img src="/img/vue/普通对象响应式思维导图.webp" alt="普通对象响应式思维导图"  />
+
 对于非原始值的响应式方案，我们首先需要了解什么是非原始值。在 JavaScript 中，原始值包括字符串、数字、布尔值、null、undefined 和 symbol，而其他所有值都是非原始值，包括对象和数组。
 
 vue2 使用 Object.defineProperty 实现非原始值的响应式方案：
@@ -471,7 +473,9 @@ const proxyMap = new WeakMap();
 const ITERATE_KEY = Symbol('iterate');
 ```
 
-## set 和 map 的代理
+## Set 和 Map 的代理
+
+<img src="/img/vue/Set和Map响应式处理思维导图.webp" alt="Set和Map响应式处理思维导图"  />
 
 由于 set 集合和 map 的读取和普通对象有所不同，普通对象直接通过 obj.x 读取或者 obj['x']，但是 set 集合和 map 通过 get、add 方法和 set 方法来进行读写，所以 vue3 在处理集合和 map 的响应式的时候需要额外多做点工作
 
@@ -636,12 +640,117 @@ const mutableInstrumentations = {
 
 ## 数组的代理
 
+<img src="/img/vue/数组的响应式处理.webp" alt="数组的响应式处理"  />
+
 数组虽然有很多操作方法，但是本质上和普通对象很接近，不像 set 和 map，大部分用来代理常规对象的方式对于数组也是生效的
 
 过数组下标读取数组元素和设置都可以触发 proxy 的 get 和 set 方法。
 
 - Vue 2：由于基于 Object.defineProperty，无法完全代理数组的操作，必须通过 Vue.set 或使用数组的重写方法（如 push、splice）来触发视图更新。
 - Vue 3：基于 Proxy，可以完全代理数组的所有操作，响应式系统更加完善
+
+### 数组长度减少
+
+当操作数组导致长度发生变化时，原数组中索引大于或等于新长度的元素（即将被删除的元素），其对应的依赖集合中的副作用函数都会被触发。
+
+```javascript
+const arr = reactive([1, 2, 3, 4, 5]) // 长度为 5
+
+
+effect(() => console.log(arr[3])) // 会触发，因为 3 >= 新长度
+effect(() => console.log(arr[4])) // 会触发，因为 4 >= 新长度
+effect(() => console.log(arr[2])) // 不会触发，因为 2 < 新长度
+
+/*
+当 arr.length = 3 时：
+[1, 2, 3, 4, 5] -> [1, 2, 3]
+          ↑  ↑
+ 这些位置(索引3,4)的依赖会被触发，因为它们 >= 新长度(3)
+*/
+
+当 arr.length = 3
+
+```
+
+### 数组长度增加
+
+1. 纯粹增加长度：只触发 length 依赖
+2. 给新位置赋值：触发 length 依赖 + 被赋值位置的依赖
+
+```javascript
+const arr = reactive([1, 2, 3]); // 初始长度为 3
+
+// 设置依赖
+effect(() => console.log('length:', arr.length));
+effect(() => {
+  // 这里读取 arr[4] 会建立依赖关系
+  console.log('index 4:', arr[4]);
+});
+
+// 给新位置赋值
+console.log('\n--- 设置 arr[4] = 5 ---');
+arr[4] = 5;
+// 输出:
+// length: 5    (长度变化触发)
+// index 4: 5   (新位置赋值触发)
+```
+
+当执行 arr[4] = 5 时的完整过程：
+
+1. 读取 arr[4]
+
+   - 收集依赖，建立 arr[4] 的依赖集合
+
+2. 赋值操作导致长度变化 (3 -> 5)
+
+   - 触发 length 的依赖集合
+
+3. 设置新值 5
+   - 触发 arr[4] 的依赖集合
+
+大致源码如下：
+
+```javascript
+function createReactiveObject(target) {
+  const proxy = new Proxy(target, {
+    // get(...) {
+    //  ...
+    // },
+    set(target, key, value, receiver) {
+      const oldLength = target.length;
+      const oldValue = target[key];
+      const result = Reflect.set(target, key, value, receiver);
+
+      // 是数组的情况下
+      if (Array.isArray(target)) {
+        const index = Number(key);
+        // 如果 key 是 length
+        if (key === 'length') {
+          if (value < oldLength) {
+            for (let i = value; i < oldLength; i++) {
+              trigger(target, 'delete', i.toString());
+            }
+          }
+          trigger(target, 'set', 'length');
+        }
+        // 如果 key 是索引
+        else if (!isNaN(index)) {
+          // 如果 key 大于等于 length
+          if (index >= oldLength) {
+            trigger(target, 'set', 'length');
+          }
+          // 如果旧值不等于新值
+          if (oldValue !== value) {
+            trigger(target, 'set', key);
+          }
+        }
+      }
+      return result;
+    },
+  });
+  return proxy;
+}
+```
 
 ### for...of 遍历的依赖收集机制
 
@@ -736,3 +845,132 @@ const reactiveMap = new Map()￼
 ```
 
 这样，以后对一个对象创建成 proxy 代理对象就是唯一的了，如果已经创建过了就直接在 reactiveMap 中拿，这样就对一个对象重复创建 proxy 导致不必要的问题出现，如上述问题
+
+#### 为什么要重写数组的方法？比如 include
+
+重写数组方法（如 includes）的原因在于，当一个原始对象被 Proxy 代理后，读取其中的属性会被响应式包裹。此时，如果调用 includes 方法去判断一个原始对象的属性是否存在于代理对象中，会返回 false，因为代理对象和原始对象的引用地址已经不同。
+
+虽然可以在 Proxy 的 get 方法中通过 this.raw 来获取原始对象并进行对比，但这种方式灵活性不足，且需要手动处理每种情况。相比之下，直接重写 includes 方法，通过复用原生 includes 方法并在其中加入对代理和原始对象的处理逻辑，不仅能解决问题，还能保持代码的扩展性和可维护性。
+
+```javascript
+// Vue 3 的响应式系统实现
+function createReactiveObject(target) {
+  const proxy = new Proxy(target, {
+    get(target, key，receiver) {
+      // 特殊处理 __v_raw 属性
+      if (key === '__v_raw') {
+        return target;
+      }
+
+      // 重写数组方法
+      if (Array.isArray(target) && arrayInstrumentations.hasOwnProperty(key)) {
+        return Reflect.get(arrayInstrumentations, key, receiver)
+      }
+
+
+      return Reflect.get(target, key);
+    }
+  });
+
+  // 保存原始对象的引用
+  def(proxy, '__v_raw', target);
+
+  return proxy;
+}
+```
+
+重写的数组方法都在 arrayInstrumentations 对象中
+
+```javascript
+const arrayInstrumentations = {};
+
+// 重写 includes 方法
+['includes', 'indexOf', 'lastIndexOf'].forEach((method) => {
+  arrayInstrumentations[method] = function (...args) {
+    const arr = toRaw(this); // 获取原始数组
+    for (let i = 0, l = this.length; i < l; i++) {
+      // 依赖收集
+      track(arr, TrackOpTypes.GET, i + '');
+    }
+    // 如果传入的是代理对象，获取其原始值
+    const res = arr[method](...args);
+    if (res === -1 || res === false) {
+      // 如果找不到，尝试用原始值再查找一次
+      return arr[method](...args.map(toRaw));
+    } else {
+      return res;
+    }
+  };
+});
+
+// 重写变更方法
+['push', 'pop', 'shift', 'unshift', 'splice'].forEach((method) => {
+  arrayInstrumentations[method] = function (...args) {
+    pauseTracking(); // 暂停依赖收集
+    const res = toRaw(this)[method].apply(this, args); // 调用原始数组方法
+    resetTracking(); // 恢复依赖收集
+    return res;
+  };
+});
+
+// 处理 slice 和 concat 等方法
+['slice', 'concat'].forEach((method) => {
+  arrayInstrumentations[method] = function (...args) {
+    const arr = toRaw(this); // 获取原始数组
+    for (let i = 0, l = this.length; i < l; i++) {
+      // 依赖收集
+      track(arr, TrackOpTypes.GET, i + '');
+    }
+    return arr[method](...args).map(wrap); // 返回代理后的结果
+  };
+});
+```
+
+### 隐式修改数组长度的原型方法
+
+在 Vue 3 的响应式系统中，数组的某些方法（如 push、pop、shift、unshift 和 splice）会隐式修改数组的长度（length 属性）。这些方法在代理对象中触发时，会先后触发 get 和 set 拦截器，分别针对当前操作的索引和 length 属性。这种行为可能导致依赖收集和触发机制出现问题，尤其是在多个 effect 中同时使用这些方法时，可能会引发死循环，最终导致栈溢出。
+
+```javascript
+const arr = reactive([]);
+
+// 第一个副作用函数
+effect(() => {
+  arr.push(1);
+});
+
+// 第二个副作用函数
+effect(() => {
+  arr.push(1);
+});
+```
+
+push 特性：首先读取 arr 的长度，从而确定数组要加到哪个索引位置上，比如长度是 1，那么新元素要添加到索引为 1 上，即 arr[1] = 新元素，这个过程先读取索引为 1，再设置，所以整个过程触发两次 get 和两次 set，分别是读取 length 和索引 1，设置 length 和索引 1 的值
+
+解析：
+
+第一个 effect 执行的时候，触发 arr 代理对象触发 push 方法，此时要将元素 1 添加的索引为 0 的位置，所以索引为 0 的属性依赖集合将当前这个 effect 副作用函数收集起来，然后再将 effect 副作用函数也收集进 arr 代理对象的 length 属性依赖集合中，因为先后读取了对应的索引和 length 属性；设置完之后进行触发，因为触发了 set 拦截方法，但是因为当前的 effect 回调正在执行，所以触发依赖过滤掉当前副作用回调，所以到此为止没问题；
+
+但是当我们执行第二个 effect 的时候就出现问题了，第二个 efffect 回调也执行 arr 代理对象的 push 方法，一样先后触发了索引属性和 length 属性的读取，然后收集对应的依赖，到这里 get 方法执行完，这个时候代理对象 arr 的依赖集合有 3 个，分别是两个索引依赖集合(索引 0 和 1)和一个 length 依赖集合，其中 length 依赖集合中有第一个 effect 副作用回调和第二个 effect 副作用回调，所以此时触发 set 方法设置索引和 length，触发索引为 1 的依赖集合和 length 属性依赖集合，因为此时索引为 1 的依赖集合中的 effect 时当前正在执行的(还没执行完)，所以过滤掉，但是触发 length 属性依赖集合的时候，里面有第一个 effect 回调和当前的 effect 回调，所以过滤掉当前的 effect 回调，执行第一个回调，这样当前的回调还没执行完又执行第一个回调，当触发第一个回调的时候又过滤掉第一个回调只触发第二个 effect,又进行压栈，这样循环往复就会导致栈溢出。
+
+所以为了避免这个问题，Vue 3 对 push 方法进行了重写，以避免在读取值的阶段收集 length 的依赖。这种重写的方式使得在执行 push 方法时，只会让对应的索引依赖集合进行收集依赖，而不会收集 length 的依赖。这样的设计是为了避免在多个 effect 中同时使用 push 方法时出现死循环的情况(不然多个 effect 使用 push 的话，都进行 length 收集，就会出现当前 effect 回调刚收集进当前数组的 length 依赖集合中，又触发之前的 length 回调，因为 push 会设置更新数组长度，这样当前 effect 回调还没执行完又去执行刚刚收集的回调，然后就互相循环调用，直到栈溢出)
+
+解决： 因为在调用 push 等方法的同时会读取 length 属性，那么我们就处理成当 push 方法执行的时候不进行其他的依赖收集，这样就不会将当前的 effect 收集成 length 依赖集合中了，其实就是在代理数组对象使用 push 等方法的时候屏蔽 length 属性的依赖收集
+
+```javascript
+// 当前是否可以收集
+let shouldTrack = true;
+// 重写数组的 push、pop、shift、unshift 以及 splice 方法
+['push', 'pop', 'shift', 'unshift', 'splice'].forEach((method) => {
+  const originMethod = Array.prototype[method];
+  arrayInstrumentations[method] = function (...args) {
+    shouldTrack = false;
+    let res = originMethod.apply(this, args);
+    shouldTrack = true;
+    return res;
+  };
+});
+```
+
+- 除了 push 方法之外，pop、shift、unshift 以及 splice 等方法都需要做类似的处理
+
+小结：Vue 3 对数组的响应式处理中，像 push、pop 等方法会触发依赖更新，但不会对 length 进行依赖收集（这些方法会隐式访问 length 属性），而直接访问（显式访问）或修改 length 时会正常收集和触发依赖，这种设计避免了重复依赖收集，提升了性能，同时保证了响应式的正确性。
