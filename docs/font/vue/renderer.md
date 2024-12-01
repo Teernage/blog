@@ -285,3 +285,47 @@ invoke 对象的 key 属性值可以是一个回调函数，也可以是一个�
 这个 invoke 对象不是放在全局下，而是作为当前虚拟节点对应的 dom 的属性下，即 `vnode.el.invoke = {...}`
 
 <span style='color:red'>本质</span>：直接改事件句柄，事件句柄作为 vnode 的对象属性，所以每次只需要修改这个对象即可，这个对象的内存地址始终不变，不需要频繁的移除事件和重绑事件
+
+## 虚拟节点的 children 子节点
+
+<img src="/img/vue/虚拟节点子节点类型思维导图.webp" alt="虚拟节点子节点类型思维导图" width=600  />
+
+一个虚拟节点的 children 子节点有几种情况？
+
+3 种情况
+
+1.  没有子节点
+
+```javaScript
+vnode = {
+    type:'div',
+    children: null
+}
+```
+
+2.  子节点为文本节点
+
+```javaScript
+vnode = {
+    type:'div',
+    children: "Some Text"
+}
+```
+
+3. 子节点为多种节点混合组合， 使用数组表示
+
+```javaScript
+vnode = {
+    type:'div',
+    children: [
+        {
+         type:'p',
+         children: "Some Text"
+        },
+        {
+         type:TEXT,
+         children: "Some Text"
+        }
+    ]
+}
+```
