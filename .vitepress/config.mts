@@ -107,6 +107,7 @@ export default defineConfigWithTheme({
             { text: '非原始值的响应式方案', link: '/docs/font/vue/nonPrimitiveReactive' },
             { text: '原始值的响应式方案', link: '/docs/font/vue/primitiveReactive' },
             { text: '渲染器', link: '/docs/font/vue/renderer' },
+            { text: 'diff算法', link: '/docs/font/vue/diff' },
 
           ],
         },
