@@ -89,3 +89,175 @@ diff 算法只关心新旧虚拟节点都存在一组子节点的情况，也就
 <img src="/img/vue/简单diff算法1.webp" width=700 alt="简单diff算法1"  />
 
 如果没有设置 key，那么就会删除旧节点对应的 dom，根据新虚拟节点暴力创建新的 dom 进行挂载
+
+<span style='color:red'>强调：DOM 可复用并不意味着不需要更新</span>.如下所示的 2 个虚拟节点：
+
+```javascript
+const oldVNode = { type: 'p', key: 1, children: 'text 1' };
+const newVNode = { type: 'p', key: 1, children: 'text 2' };
+```
+
+这两个虚拟节点拥有相同的 key 值和 vnode.type 属性值。这意味着,在更新时可以复用 DOM 元素，即只需要通过移动操作来完成更新。但仍需要对这两个虚拟节点进行打补丁操作，因为新的虚拟节点 (newVNode)的文本子节点的内容已经改变了(由’text 1’变成 ‘text 2’)。因此，在讨论如何移动 DOM 之前，我们需要先完成打补丁操作.
+
+```javascript
+const oldVNode = {
+  type: 'div',
+  children: [
+    { key: 1, type: 'p', children: '1' },
+    { key: 2, type: 'p', children: '2' },
+    { key: 3, type: 'p', children: '3' },
+  ],
+};
+
+const newVNode = {
+  type: 'div',
+  children: [
+    { key: 3, type: 'p', children: '3' },
+    { key: 1, type: 'p', children: '1' },
+    { key: 2, type: 'p', children: '2' },
+  ],
+};
+```
+
+找到需要移动的元素
+
+```javascript
+// 1.找到需要移动的元素
+function patchChildren(n1, n2) {
+  const oldChildren = n1.children;
+  const newChildren = n2.children;
+
+  let lastIndex = 0;
+  for (let i = 0; i < newChildren.length; i++) {
+    const newVNode = newChildren[i];
+    for (j = 0; j < oldChildren.length; j++) {
+      const oldVNode = oldChildren[j];
+      if (newVNode.key === oldVNode.key) {
+        // 移动DOM之前，我们需要先完成对虚拟节点的打补丁操作 然后再更新虚拟节点对应的dom
+        patch(oldVNode, newVNode, container);
+
+        if (j < lastIndex) {
+          console.log('需要移动的节点', newVNode, oldVNode, j);
+        } else {
+          lastIndex = j;
+        }
+        break;
+      }
+    }
+  }
+}
+patchChildren(oldVNode, newVNode);
+```
+
+#### 如何移动元素
+
+更新的过程：
+
+- 第一步:取新的一组子节点中第一个节点 p-3，它的 key 为 3，尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 2。此时变量 lastIndex 的值为 0，索引 2 不小于 0，所以节点 p-3 对应的真实 DOM 不需要移动，但需要更新变量 lastIndex 的值为 2。
+
+- 第二步:取新的一组子节点中第二个节点 p-1，它的 key 为 1，尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 0。此时变量 lastIndex 的值为 2，索引 0 小于 2，所以节点 p-1 对应的真实 DOM 需要移动。
+
+到了这一步，我们发现，节点 p-1 对应的真实 DOM 需要移动，但应该移动到哪里呢?我们知道， children 的顺序其实就是更新后真实 DOM 节点应有的顺序。所以 p-1 在新 children 中的位置就代表了真实 DOM 更新后的位置。由于节点 p-1 在新 children 中排在节点 p-3 后面，所以我们应该把节点 p-1 所对应的真实 DOM 移到节点 p-3 所对应的真实 DOM 后面。
+
+可以看到，这样操作之后，此时真实 DOM 的顺序为 p-2、p-3、p-1。
+
+<img src="/img/vue/简单diff算法2.webp" width=600 alt="简单diff算法2"  />
+
+- 第三步:取新的一组子节点中第三个节点 p-2，它的 key 为 2。尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 1。此时变量 lastIndex 的值为 2，索引 1 小于 2，所以节点 p-2 对应的真实 DOM 需要移动。
+
+第三步与第二步类似，节点 p-2 对应的真实 DOM 也需要移动。 面后同样，由于节点 p-2 在新 children 中排在节点 p-1 后面，所以我们应该把节点 p-2 对应的真实 DOM 移动到节点 p-1 对应的真实 DOM 后面。移动后的结果如图下图所示：
+
+<img src="/img/vue/简单diff算法3.webp" width=600 alt="简单diff算法3"  />
+
+经过这一步移动操作之后，我们发现，真实 DOM 的顺序与新的一组子节点的顺序相同了:p-3、p-1、p-2。至此，更新操作完成。
+
+```javascript
+function patchChildren(n1, n2) {
+  const oldChildren = n1.children;
+  const newChildren = n2.children;
+
+  let lastIndex = 0;
+
+  for (let i = 0; i < newChildren.length; i++) {
+    // 在第一层循环中定义变量 find，代表是否在旧的一组子节点中找到可复用的节点
+    let find = false;
+
+    const newVNode = newChildren[i];
+
+    for (j = 0; j < oldChildren.length; j++) {
+      const oldVNode = oldChildren[j];
+      if (newVNode.key === oldVNode.key) {
+        // 一旦找到可复用的节点，则将变量 find 的值设为 true
+        find = true;
+
+        if (j < lastIndex) {
+          // console.log('需要移动的节点', newVNode, oldVNode, j)
+
+          const prevVNode = newChildren[i - 1];
+          if (prevVNode) {
+            // 2.找到 prevVNode 所对应真实 DOM 的下一个兄 弟节点，并将其作为锚点
+            const anchor = prevVNode?.el?.nextSibling;
+
+            console.log('插入', prevVNode, anchor);
+          }
+        } else {
+          lastIndex = j;
+        }
+        break;
+      }
+    }
+
+    // 如果代码运行到这里，find 仍然为 false,说明当前newVNode没有在旧的一组子节点中找到可复用的节点，也就是说，当前newVNode是新增节点，需要挂载
+    if (!find) {
+      const prevVNode = newChildren[i - 1];
+    }
+  }
+
+  // 移除不存在的元素
+  for (let i = 0; i < oldChildren.length; i++) {
+    const oldVNode = oldChildren[i];
+    const has = newChildren.find((vnode) => vnode.key === oldVNode.key);
+
+    // 如果没有找到具有相同 key 值的节点，则说明需要删除该节点
+    if (!has) {
+      // 调用 unmount 函数将其卸载
+      unmount(oldVNode);
+    }
+  }
+}
+patchChildren(oldVNode, newVNode);
+```
+
+#### 总结：
+
+第一层循环遍历新虚拟节点集合，第二层循环遍历旧虚拟节点集合，如果在旧集合中找不到相同 key 的，那么意味着需要新增，key 相同的则进行 path 更新内容，最后移动
+
+最后再单独遍历旧集合，找到不存在于新集合的节点，然后将不存在于新虚拟节点集合的节点对应的 dom 从父集中删除
+
+如何移动的，锚点怎么定？
+
+锚点就是当前遍历到的新节点的前一个节点对应的 dom 的下一个兄弟节点
+
+```javascript
+const prevVNode = newChildren[i - 1];
+prevVNode.el.next.nextSibling;
+```
+
+用 insertBefore 来进行插入操作，所以我们插入的位置是：<span style='color:red'>当前节点的前一个节点对应的 dom 的下一个兄弟节点之前</span>
+
+```javascript
+初始DOM：[p-1, p-2, p-3]
+目标DOM：[p-3, p-1, p-2]
+
+处理p-1时：
+- 需要移动到p-3后面
+- 所以要找到p-3.nextSibling作为锚点
+- 执行insertBefore(p-1的DOM, p-3.nextSibling)
+
+处理p-2时：
+- 需要移动到p-1后面
+- 所以要找到p-1.nextSibling作为锚点
+- 执行insertBefore(p-2的DOM, p-1.nextSibling)
+```
+
+## 双端 diff 算法
