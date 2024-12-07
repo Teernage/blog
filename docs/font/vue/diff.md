@@ -153,7 +153,7 @@ patchChildren(oldVNode, newVNode);
 
 更新的过程：
 
-- 第一步:取新的一组子节点中第一个节点 p-3，它的 key 为 3，尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 2。此时变量 lastIndex 的值为 0，索引 2 不小于 0，所以节点 p-3 对应的真实 DOM 不需要移动，但需要更新变量 lastIndex 的值为 2。
+- 第一步:取新的一组子节点中第一个节点 p-3，它的 key 为 3，尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 2。此时变量 lastIndex 的值为 0，索引 2 不小于 0，需要更新变量 lastIndex 的值为 2。因为此时新 p-3 对应的旧 p-3 的索引 2 就是最大索引，所以节点 p-3 对应的真实 DOM 不需要移动
 
 - 第二步:取新的一组子节点中第二个节点 p-1，它的 key 为 1，尝试在旧的一组子节点中找到具有相同 key 值的可复用节点。发现能够找到，并且该节点在旧的一组子节点中的索引为 0。此时变量 lastIndex 的值为 2，索引 0 小于 2，所以节点 p-1 对应的真实 DOM 需要移动。
 
@@ -228,6 +228,29 @@ function patchChildren(n1, n2) {
 patchChildren(oldVNode, newVNode);
 ```
 
+算法的核心是使用 lastIndex 优化策略，通过记录遍历过的节点的最大索引值，来判断节点是否需要移动。如果当前新虚拟节点对应的旧虚拟节点的索引值是最大的即 lastIndex，那么不需要移动，否则需要移动。
+
+执行顺序：
+
+先处理节点 key=3：找到对应旧节点，索引确实是最后的，位置正确，不需要移动
+再处理节点 key=1：找到对应旧节点，但位置在 lastIndex 之前，需要移动到节点 3 后面
+最后处理节点 key=2：找到对应旧节点，位置也在 lastIndex 之前，需要移动到节点 1 后面
+移动规则：
+
+当发现节点需要移动时，通过找到前一个节点(prevVNode)的下一个兄弟节点作为锚点(prevVNode.el 就是旧虚拟节点对应的 dom，内部环节将旧节点对应的 dom 保存在新虚拟节点的 el 属性中了，所以新虚拟节点的 el 属性保存了旧节点对应的 dom)
+将当前节点移动到这个锚点之前(用 insertBefore)
+
+最终进行删除检查：
+
+遍历旧节点列表
+检查每个旧节点是否在新节点列表中存在
+如果不存在则删除该节点
+
+这种简单 diff 算法的特点是：
+它能够处理节点的移动、添加和删除
+性能不如双端 diff 算法，因为使用了双层循环
+移动节点的策略相对简单，可能会产生一些不必要的移动
+
 #### 总结：
 
 第一层循环遍历新虚拟节点集合，第二层循环遍历旧虚拟节点集合，如果在旧集合中找不到相同 key 的，那么意味着需要新增，key 相同的则进行 path 更新内容，最后移动
@@ -261,3 +284,118 @@ prevVNode.el.next.nextSibling;
 ```
 
 ## 双端 diff 算法
+
+双端 Diff 算法是一种同时对新旧两组子节点的两个端点进行比较的算法。因此，我们需要四个索引值，分别指向新旧两组子节点的端点
+
+<img src="/img/vue/双端diff算法.webp" width=700 alt="双端diff算法"  />
+
+双端比较的方式：
+
+第一步：头头对比
+
+- 旧虚拟节点集合的第一个节点和新虚拟节点集合的第一个节点
+- 如果是相同 key 节点则 path 更新内容，不用移动，因为都是第一个位置 ，新旧虚拟节点集合的开始指针递增
+- key 不等：进行第二步
+
+第二步 尾尾对比
+
+- 旧虚拟节点集合的最后一个节点和新虚拟节点集合的最后一个节点
+- 如果是相同 key 节点，则 path 更新内容，不用移动，因为都是最后一个位置，新旧虚拟节点集合的结束指针递减
+- key 不等则进行第三步
+
+第三步 头尾对比
+
+- 旧虚拟节点集合的第一个节点和新虚拟节点集合的最后一个节点
+- 如果是相同 key 节点，则 path 更新内容，然后再移动位置，位置是以新虚拟节点位置为准，因为新虚拟节点是第一个位置，所以取的锚点位置是旧节点集合第一个位置，插入到这个锚点之前(用 inserBefore)。旧虚拟节点集合的开始指针递增，新虚拟节点集合的结束指针递减
+
+key 不等则进行第四步
+
+第四步 尾头对比
+
+- 旧虚拟节点集合的最后一个节点和新虚拟节点集合的第一个节点
+- 如果是相同 key 节点，则 path 更新内容，然后再移动位置，位置是以新虚拟节点位置为准，因为新虚拟节点是最后的位置，所以取的锚点位置是旧节点集合最后一个位置的下一个兄弟节点，插入到这个锚点之前(用 inserBefore)。新虚拟节点集合的开始指针递增，旧虚拟节点集合的结束指针递减
+
+key 不等则进行第五步
+
+第五步：遍历旧节点集合，找找存不存在新虚拟节点集合的第一个节点，如果不存在，那么说明第一个新虚拟节点是新增的，所以需要新增 dom，并插入到当前旧节点集合的第一个虚拟节点对应的 dom(oldStartVNode.el)的前面,然后新虚拟节点集合的头指针递增，如果存在，则将当前相同 key 的 vnode 对应的 dom 移动到最前面，新虚拟节点集合的头指针递增，然后将相同 key 的旧 vnode 置为 underfined，这样做是为了标记当前这个旧虚拟节点已经处理过了，之后遍历到这个 underfined 跳过即可，然后进入下一次循环，还是头头 、尾尾、头尾、尾头对比...
+
+<img src="/img/vue/双端diff算法2.webp" width=700 alt="双端diff算法2"  />
+
+```javascript
+while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+  // 增加两个判断分支，如果头尾部节点为 undefined，则说明该节点已经被处理过了，直接跳到下一个位置
+  if (!oldStartVNode) {
+    oldStartVNode = oldChildren[++oldStartIdx];
+  } else if (!oldEndVNode) {
+    oldEndVNode = oldChildren[--oldEndIdx];
+  } else if (oldStartVNode.key === newStartVNode.key) {
+    // 步骤一:oldStartVNode 和 newStartVNode 比较
+    // 调用 patch 函数在 oldStartVNode 与 newStartVNode 之间打补丁
+    patch(oldStartVNode, newStartVNode, container);
+    // 更新相关索引，指向下一个位置
+    oldStartVNode = oldChildren[++oldStartIdx];
+    newStartVNode = newChildren[++newStartIdx];
+  } else if (oldEndVNode.key === newEndVNode.key) {
+    // 步骤二:oldEndVNode 和 newEndVNode 比较
+    // 节点在新的顺序中仍然处于尾部，不需要移动，但仍需打补丁
+    patch(oldEndVNode, newEndVNode, container);
+
+    // 更新索引和头尾部节点变量
+    oldEndVNode = oldChildren[--oldEndIdx];
+    newEndVNode = newChildren[--newEndIdx];
+  } else if (oldStartVNode.key === newEndVNode.key) {
+    // 步骤三:oldStartVNode 和 newEndVNode 比较
+    patch(oldStartVNode, newEndVNode, container);
+    insert(oldStartVNode.el, container, oldEndVNode.el.nextSibling);
+
+    oldStartVNode = oldChildren[++oldStartIdx];
+    newEndVNode = newChildren[--newEndIdx];
+  } else if (oldEndVNode.key === newStartVNode.key) {
+    // 我们找到了具有相同 key 值的节点。这说明，原来处于尾部的节点在新的顺序中应该处于头部。
+    // 于是，我们只需要以头部元素oldStartVNode.el 作为锚点，将尾部元素 oldEndVNode.el 移动到锚点前面即可。
+    // 但需要注意的是，在进行 DOM 的移动操作之前，仍然需要调用 patch 函数在新旧虚拟节点之间打补丁。
+
+    // 第四步:oldEndVNode 和 newStartVNode 比较
+    // 仍然需要调用 patch 函数进行打补丁
+    patch(oldEndVNode, newStartVNode, container);
+
+    // 移动dom操作  oldEndVNode.el 移动到 oldStartVNode.el 前面
+    insert(oldEndVNode.el, container, oldStartVNode.el);
+
+    // 移动 DOM 完成后，更新索引值，指向下一个位置
+    oldEndVNode = oldChildren[--oldEndIdx];
+    newStartVNode = newChildren[++newStartIdx];
+  } else {
+    // 处理非理想情况
+
+    // 在旧的一 组子节点中，找到与新的一组子节点的头部节点具有相同 key 值的节点
+    // 遍历旧的一组子节点，试图寻找与 newStartVNode 拥有相同 key 值的节点
+    // idxInOld 就是新的一组子节点的头部节点在旧的一组子节点中的索引
+    const idxInOld = oldChildren.findIndex(
+      (node) => node.key === newStartVNode.key
+    );
+
+    // idxInOld 大于 0，说明找到了可复用的节点，并且需要将其对应的真实DOM 移动到头部
+    if (idxInOld > 0) {
+      // idxInOld 位置对应的 vnode 就是需要移动的节点
+      const vnodeToMove = oldChildren[idxInOld];
+
+      // 不要忘记除移动操作外还应该打补丁
+      patch(vnodeToMove, newStartVNode, container);
+
+      // 将 vnodeToMove.el 移动到头部节点 oldStartVNode.el 之前，因此使用后者作为锚点
+      insert(vnodeToMove.el, container, oldStartVNode.el);
+
+      // 由于位置 idxInOld 处的节点所对应的真实 DOM 已经移动到了别处，因此将其设置为 undefined
+      oldChildren[idxInOld] = undefined;
+
+      // 最后更新 newStartIdx 到下一个位置
+      newStartVNode = newChildren[++newStartIdx];
+    }
+  }
+}
+```
+
+双端 diff 相比于简单 diff 算法的优势就是减少了移动次数
+
+## 快速 diff 算法
