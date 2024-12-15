@@ -401,3 +401,341 @@ while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
 双端对比算法依次进行头头、尾尾、头尾、尾头四种匹配，相同节点只更新属性和子节点、不移动位置，不同节点则根据新节点的位置进行调整：在头部用旧头节点作为锚点插入，在尾部用旧尾的下一个兄弟节点作为锚点插入。若旧节点集合中找不到匹配的新节点，则将其视为新增节点，通过 insertBefore 插入到正确位置后，更新新旧节点集合的指针，继续下一轮对比，最终完成所有节点的更新、删除和新增操作。
 
 ## 快速 diff 算法
+
+<img src="/img/vue/快速diff算法大致流程图.webp" width=600 alt="快速diff算法大致流程图"  />
+
+快速 Diff 算法，顾名思义，该算法的实测速度非常快
+
+1. 首先进行自左向右的 diff 对比 定义一个开始指针 i，和两个结束指针(因为新旧虚拟节点集合长度可能不一样)，
+
+开始指针从左向右移动，分别比较新旧虚拟节点集合的第一、第二个虚拟节点的 key 是否相同，如果相同则进行 path 看看内容是否有更新，然后开始指针向右移动，直到遇到 key 不相同的 vnode 节点则停下来跳出 while 循环，进入第二步，即从右往左遍历
+
+2. 然后自右向左的 diff 对比，两个结束指针分别指向新旧虚拟节点集合的最后一个虚拟节点，首先比较新旧虚拟节点集合的最后一个节点的 key 是否相同， 如果相同则 path，然后两个结束指针递减，继续判断两个结束指针指向的 vnode 的 key 是否相等，如果相等则 path，不相等则退出 while 循环
+
+前两步都是在遍历寻找相同 key 的 vnode 进行 path，找到 key 不相同的 vnode 位置则停下来
+
+此时开始指针 i 和两个结束指针(newEndIndex 和 oldEndIndex)都有值
+
+3. 新节点集合多于旧节点集合 时的 diff 比对 (除了多的出来的，剩下的节点是相同 key 的; i > oldEndIndex && i < newEndIndex,开始指针大于旧节点结束指针，说明此时已经退出循环了，旧节点集合的虚拟节点都已经处理过了。开始指针小于新节点结束指针，说明是正常的，因为开始小于结束，此时说明新虚拟节点集合还有虚拟节点没处理，这些还没有处理的新虚拟节点都是需要新增的节点)
+
+4. 旧节点集合多于新节点集合时的 diff 比对 (除了多的出来的，剩下的节点是相同 key 的； i < oldEndIndex && i >newEndIndex,开始指针大于新节点结束指针，不正常，说明已经退出循环，意味着新虚拟节点结合的节点都已经处理过了，开始指针小于旧结束指针，正常，说明此时旧节点集合还有节点没有处理，更新以新节点为主，新节点已经处理完了，所以剩下没处理的旧节点对应的 dom 需要被删除)
+
+5. 利用最长递增子序列来辅助处理中间部分
+
+- 5.1 初始化一个映射表 newIndexToOldIndexMap，用来存储新虚拟节点中间部分的节点的索引
+- 5.2 遍历老节点集合中间部分节点，
+  找出老节点有，而新节点没有的 -> 需要把这个节点删除掉
+  找到新老节点都有的，—> 需要 patch 看看内容需不需要更新，此时遍历到的索引添加到
+
+newIndexToOldIndexMap 数组中，这个数组的个数代表着新节点集合中间部分节点的个数，每个初始值为-1，赋的值代表着中间部分节点在老节点集合中的索引
+
+- 5.3 根据最长递增子序列来找 newIndexToOldIndexMap 数组中的稳定组合，即不需要移动的组合
+
+然后对不稳定的节点进行排序，倒叙遍历新虚拟节点集合的中间部分节点，过滤掉稳定节点，对不稳定节点进行移动操作。
+
+#### 为什么到倒叙？
+
+因为要找稳定的锚点，倒叙的话，最后一个节点是确定的，所以是稳定的
+锚点怎么定？也就是遍历新节点集合中间部分时的当前节点的下一个节点对应的 dom 元素。(又因为是倒遍历，所以锚点是位置确定的节点)
+
+### 快速 diff 算法的归纳总结
+
+#### 在 Vue 3 的快速 diff 算法中，进行双端分别对比之后，剩下的情况可以归纳为三种：
+
+1. 新 vnode 集合 > 旧的 vnode 集合，其中新虚拟节点集合节点数大于旧虚拟节点集合节点数，除了新 vnode 集合多出来的部分，剩下新虚拟节点都已经处理过了(这部分是和旧虚拟节点集合中相同 key 和 type 的 vnode，此时旧 vnode 集合已经全部处理完毕)，所以也就是除了新增的，剩下的都是相同 key 和 type 的 vnode，只是作了 path 进行看看是否需要更新节点的内容，剩下新虚拟节点集合中未处理的节点都是需要新增的，因此需要进行新增操作。
+2. 新 vnode 集合 < 旧的 vnode 集合，其中新虚拟节点集合节点数小于旧虚拟节点集合节点数，除了旧虚拟节点集合多出来的部分，剩下的旧虚拟节点都已经处理过了(处理过旧虚拟节点集合的这部分是和新虚拟节点集合中是相同 key 和 type 的 vnode，此时新 vnode 集合已经全部处理完毕)，所以剩下旧虚拟节点集合中未处理的节点都是需要删除的，因为要以新虚拟节点集合为主，因此需要进行删除操作
+3. 新旧虚拟节点除了两端一致，中间部分不一致。在这种情况下，需要采用最长递增子序列来确定稳定不变的组合，然后对不稳定的元素进行移动操作。
+
+这些情况涵盖了在 Vue 3 的 diff 算法中可能出现的变化情况。
+
+#### 以下是快速 diff 算法的核心源码：
+
+```javaScript
+  function patchKeyedChildren(
+    c1: any[],
+    c2: any[],
+    container,
+    parentAnchor,
+    parentComponent
+  ) {
+    // 开始指针
+    let i = 0;
+    // 新虚拟节点集合的长度
+    const l2 = c2.length;
+    // 旧虚拟节点集合的尾指针
+    let e1 = c1.length - 1;
+    // 新虚拟节点集合的尾指针
+    let e2 = l2 - 1;
+
+    // 判断当前的vnode的key和type是否一致，如果一致说明是相同类型的vnode，只是先后创建顺序不一样，后面的是更新后生成的
+    const isSameVNodeType = (n1, n2) => {
+      return n1.type === n2.type && n1.key === n2.key;
+    };
+
+    // 1. 从左往右进行匹配，直到遇到不同key的vnode即停下来 ---> 跳出循环
+    while (i <= e1 && i <= e2) {
+      const prevChild = c1[i];
+      const nextChild = c2[i];
+
+      if (!isSameVNodeType(prevChild, nextChild)) {
+        console.log("两个 child 不相等(从左往右比对)");
+        console.log(`prevChild:${prevChild}`);
+        console.log(`nextChild:${nextChild}`);
+        break;
+      }
+
+      console.log("两个 child 相等，接下来对比这两个 child 节点(从左往右比对)");
+      patch(prevChild, nextChild, container, parentAnchor, parentComponent);
+      i++;
+    }
+
+    //2. 从右往左匹配，直到遇到不同key的vnode即停下来 ---> 跳出循环
+    while (i <= e1 && i <= e2) {
+      // 从右向左取值
+      const prevChild = c1[e1];
+      const nextChild = c2[e2];
+
+      if (!isSameVNodeType(prevChild, nextChild)) {
+        console.log("两个 child 不相等(从右往左比对)");
+        console.log(`prevChild:${prevChild}`);
+        console.log(`nextChild:${nextChild}`);
+        break;
+      }
+      console.log("两个 child 相等，接下来对比这两个 child 节点(从右往左比对)");
+      patch(prevChild, nextChild, container, parentAnchor, parentComponent);
+      e1--;
+      e2--;
+    }
+
+    // 3.新的虚拟节点集合中虚拟节点节点个数多于旧的虚拟节点集合的
+    // 新增节点的情况：
+    // i > e1 头指针 > 旧尾指针(非正常)，说明旧虚拟节点集合的所有虚拟节点都已经处理过了
+    // i <= e2 头指针 < 新尾指针 (正常情况)，说明新虚拟节点集合还有节点没有处理完，那么没处理的就是要新增的dom
+    if (i > e1 && i <= e2) {
+      // 锚点的计算：新的节点有可能需要添加到尾部，也可能添加到头部，所以需要指定添加的问题
+      // 要添加的位置是当前的尾指针e2的索引位置的下一个节点之前
+      // 所以我们需要从 e2 + 1 取到锚点的位置
+      const nextPos = e2 + 1; // 添加到当前新虚拟节点的尾指针的位置的下一个位置之前
+      // 获取到当前虚拟节点的下一个虚拟节点对应的dom: 作为锚点
+      const anchor = nextPos < l2 ? c2[nextPos].el : parentAnchor;
+      // 遍历新虚拟节点集合中没有处理的节点 就是索引i开始指针 到 e2尾指针之间的虚拟节点，全部插入到anchor这个dom之前
+      while (i <= e2) {
+        console.log(`需要新创建一个 vnode: ${c2[i].key}`);
+        patch(null, c2[i], container, anchor, parentComponent);
+        i++;
+      }
+    }
+    // 4.新的虚拟节点集合中虚拟节点个数小于于旧的虚拟节点集合的
+    //   删除节点的情况：
+    //    i > e2 头指针 > 新尾指针(非正常)，说明新虚拟节点集合的所有虚拟节点都已经处理过了
+    //   i <= e1 头指针 < 旧尾指针 (正常情况)，说明旧虚拟节点集合还有节点没有处理完，那么没处理的就是要删除的dom，
+    //   因为是以新虚拟节点集合为准来更新视图上的dom的
+    else if (i > e2 && i <= e1) {
+      // 这种情况的话说明新节点的数量是小于旧节点的数量的
+      // 那么我们就需要遍历旧虚拟节点从开始指针i到结束指针e1之间的虚拟节点对应的dom从父元素中删除
+      while (i <= e1) {
+        console.log(`需要删除当前的 vnode: ${c1[i].key}`);
+        hostRemove(c1[i].el);
+        i++;
+      }
+    }
+    // 5. 新旧节点集合中的两端相同，中间部分不同，处理中间部分
+    else {
+      // 左右两边都比对完了，然后剩下的就是中间部位顺序变动的
+      // 例如下面的情况
+      // a,b,[c,d,e],f,g
+      // a,b,[e,c,d],f,g
+
+      let s1 = i;
+      let s2 = i;
+      const keyToNewIndexMap = new Map();
+      let moved = false;
+      let maxNewIndexSoFar = 0;
+      // 先把 key 和 newIndex 绑定好，方便后续基于 key 找到 newIndex
+      // 时间复杂度是 O(1)
+      for (let i = s2; i <= e2; i++) {
+        const nextChild = c2[i];
+        keyToNewIndexMap.set(nextChild.key, i);
+      }
+
+      // 需要处理中间部分的新节点数量 如上例子就是[e,c,d]三个, 所以e2 - s2 + 1 === 3
+      const toBePatched = e2 - s2 + 1;
+      // 当前中间部分节点已经打补丁个数
+      let patched = 0;
+      // 初始化 从新的index映射为老的index
+      // 创建数组的时候给定数组的长度，这个是性能最快的写法
+      const newIndexToOldIndexMap = new Array(toBePatched);
+      // 初始化为 0 , 后面处理的时候 如果发现是 0 的话，那么就说明新值在老的里面不存在
+      for (let i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
+
+      // 遍历老节点
+      // 1. 需要找出老节点有，而新节点没有的 -> 需要把这个节点删除掉
+      // 2. 新老节点都有的，—> 需要 patch
+      for (i = s1; i <= e1; i++) {
+        const prevChild = c1[i];
+
+        // 优化点
+        // 如果老的节点大于新节点的数量的话，那么这里在处理老节点的时候就直接删除即可
+        if (patched >= toBePatched) {
+          hostRemove(prevChild.el);
+          continue;
+        }
+
+        let newIndex;
+        if (prevChild.key != null) {
+          // 这里就可以通过key快速的查找了， 看看在新的里面这个节点存在不存在
+          // 时间复杂度O(1)
+          newIndex = keyToNewIndexMap.get(prevChild.key);
+        } else {
+          // 如果没key 的话，那么只能是遍历所有的新节点来确定当前节点存在不存在了
+          // 时间复杂度O(n)
+          for (let j = s2; j <= e2; j++) {
+            if (isSameVNodeType(prevChild, c2[j])) {
+              newIndex = j;
+              break;
+            }
+          }
+        }
+
+        // 因为有可能 nextIndex 的值为0（0也是正常值）
+        // 所以需要通过值是不是 undefined 或者 null 来判断
+        if (newIndex === undefined) {
+          // 当前节点的key 不存在于 newChildren 中，需要把当前节点给删除掉
+          hostRemove(prevChild.el);
+        } else {
+          // 新老节点都存在
+          console.log("新老节点都存在");
+          // 把新节点的索引和老的节点的索引建立映射关系
+          // i + 1 是因为 i 有可能是0 (0 的话会被认为新节点在老的节点中不存在)
+          newIndexToOldIndexMap[newIndex - s2] = i + 1;
+          // 来确定中间的节点是不是需要移动
+          // 新的 newIndex 如果一直是升序的话，那么就说明没有移动
+          // 所以我们可以记录最后一个节点在新的里面的索引，然后看看是不是升序
+          // 不是升序的话，我们就可以确定节点移动过了
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex;
+          } else {
+            moved = true;
+          }
+
+          patch(prevChild, c2[newIndex], container, null, parentComponent);
+          patched++;
+        }
+      }
+
+      // 利用最长递增子序列来优化移动逻辑
+      // 因为元素是升序的话，那么这些元素就是不需要移动的
+      // 而我们就可以通过最长递增子序列来获取到升序的列表
+      // 在移动的时候我们去对比这个列表，如果对比上的话，就说明当前元素不需要移动
+      // 通过 moved 来进行优化，如果没有移动过的话 那么就不需要执行算法
+      // getSequence 返回的是 newIndexToOldIndexMap 的索引值
+      // 所以后面我们可以直接遍历索引值来处理，也就是直接使用 toBePatched 即可
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : [];
+      let j = increasingNewIndexSequence.length - 1;
+
+      // 遍历新节点
+      // 1. 需要找出老节点没有，而新节点有的 -> 需要把这个节点创建
+      // 2. 最后需要移动一下位置，比如 [c,d,e] -> [e,c,d]
+
+      // 这里倒循环是因为在 insert 的时候，需要保证锚点是处理完的节点（也就是已经确定位置了）
+      // 因为 insert 逻辑是使用的 insertBefore()
+      for (let i = toBePatched - 1; i >= 0; i--) {
+        // 确定当前要处理的节点索引 倒叙循环遍历
+        const nextIndex = s2 + i;
+        const nextChild = c2[nextIndex];
+        // 锚点等于当前节点索引+1
+        // 也就是当前节点的后面一个节点(又因为是倒遍历，所以锚点是位置确定的节点)
+        const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : parentAnchor;
+
+        if (newIndexToOldIndexMap[i] === 0) {
+          // 说明新节点在老的里面不存在
+          // 需要创建
+          patch(null, nextChild, container, anchor, parentComponent);
+        } else if (moved) {
+          // 需要移动
+          // 1. j 已经没有了 说明剩下的都需要移动了
+          // 2. 最长子序列里面的值和当前的值匹配不上， 说明当前元素需要移动
+          if (j < 0 || increasingNewIndexSequence[j] !== i) {
+            // 移动的话使用 insert 即可
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            // 这里就是命中了  index 和 最长递增子序列的值
+            // 所以可以移动指针了
+            j--;
+          }
+        }
+      }
+    }
+  }
+```
+
+## 总结
+
+#### 三种算法的锚点:
+
+锚点是用于插入或移动 DOM 节点的参考位置。
+
+1. 简单 diff 算法锚点的定义
+
+   移动节点时的锚点是当前要移动的新虚拟节点在旧虚拟节点集合中对应位置的下一个兄弟节点。通过这个锚点，使用 insertBefore 方法将节点移动到正确的位置。
+
+2. 双端对比锚点的定义：
+
+- 插入到最前面：锚点是旧虚拟节点集合的头节点对应的 DOM 元素（oldStartVNode.el）。使用 insertBefore(newNode, oldStartVNode.el) 将新节点插入到旧头节点之前。
+- 插入到最后面：锚点是旧虚拟节点集合尾节点的下一个兄弟节点（oldEndVNode.el.nextSibling）。使用 insertBefore(newNode, oldEndVNode.el.nextSibling) 将新节点插入到旧尾节点之后。
+
+移动是移动旧虚拟节点集合对应的 dom 集合的顺序。
+
+3. 快速 diff 算法的增删改三种情况，其中只有新增和移动有锚点：
+
+- 新 vnode 集合 > 旧的 vnode 集合，新增操作。此时新增锚点就是：新虚拟节点集合的结束指针+1
+- 新 vnode 集合 < 旧的 vnode 集合，删除操作。删除不需要锚点
+- 新旧虚拟节点除了两端一致，中间部分不一致。在这种情况下，需要采用最长递增子序列来确定稳定不变的组合，然后对不稳定的元素进行移动操作。遍历新节点集合中间部分的节点，过滤掉稳定节点集合中的节点，对不稳定节点进行移动操作，锚点就是当前倒叙遍历新节点集合中间部分中的节点的下一个节点对应的 dom
+
+#### 虚拟节点更新的整体流程
+
+1. 首先判断新旧节点类型是否相同：
+
+   - 不同：直接替换整个节点
+   - 相同：继续比对属性和子节点
+
+2. 子节点更新有 9 种基本情况：
+
+- 新节点无子节点 × (旧节点无子节点/有文本/有子节点数组)
+- 新节点为文本 × (旧节点无子节点/有文本/有子节点数组)
+- 新节点有子节点数组 × (旧节点无子节点/有文本/有子节点数组)
+
+3. 当新旧节点都有子节点数组时，需要用 diff 算法处理，有三种实现：
+
+#### 三种 Diff 算法比较
+
+##### 简单 Diff:
+
+- 双层循环遍历新旧节点
+- 通过 key 判断节点是否可复用
+- 需要移动时以当前节点的下一个兄弟节点为锚点
+- 最后删除多余旧节点
+- 性能一般，可能产生不必要的移动
+
+##### 双端 Diff:
+
+- 同时比较新旧节点的头头、尾尾、头尾、尾头四种情况
+- 匹配成功则更新内容，根据需要移动位置
+- 四种情况都不匹配时，尝试通过 key 在旧节点中查找
+- 相比简单 Diff 减少了节点移动次数
+
+##### 快速 Diff:
+
+- 先处理头尾相同的节点
+- 剩余中间部分有三种情况:
+- 新节点多于旧节点:需要新增
+- 新节点少于旧节点:需要删除
+- 中间部分顺序不同:使用最长递增子序列算法优化移动
+- 性能最优,是 Vue3 采用的方案
+
+其实无论是简单 Diff 算法，还是双端 Diff 算法，抑或是快速 Diff 算法，它们都遵循同样的处理规则：
+
+- 判断是否有节点需要移动，以及应该如何移动；
+- 找出那些需要被添加或移除的节点。
