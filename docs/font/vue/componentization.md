@@ -541,3 +541,278 @@ const Comp = {
   },
 };
 ```
+
+### 组件事件与 emit 的实现
+
+发射自定义事件的本质是根据事件名称去父组件传递的 props 数据对象中寻找对应的事件处理函数并执行
+
+如下例子：
+
+parent 组件
+
+```js
+<template>
+    <MyComponent @change='handle' />
+</template>
+```
+
+parent 组件对应的 vnode
+
+```js
+const ComVnode = {
+  type: MyComponent,
+  props: {
+    onChange: handler,
+  },
+};
+```
+
+MyComponent 组件
+
+```js
+const MyComponent = {
+  name: 'MyComponent',
+  setup(props, { emit }) {
+    // 发射change事件，并传递给事件处理函数两个参数
+    emit('change', 1, 2);
+    return () => {
+      return; // ...
+    };
+  },
+};
+```
+
+以下是组件挂载的代码，执行组件的 setup 方法的时候把 emit 方法传递进去，所以我们平时在 setup 中开发使用到的 emit 就是传递进来的 emit 方法，看以下的 emit 方法，emit 方法会去当前组件实例的 props 中找 emit 发射事件名，如果有则执行对应的 props 属性值即回调，这就是 emit 的实现原理
+
+```js
+function mountComponent(vnode, container, anchor) {
+  // 省略部分代码
+  const componentOption = vnode.type;
+  let { render, data, setup } = componentOptions;
+  const instance = {
+    state,
+    props: shallowReactive(props),
+    isMounted: false,
+    subTree: null,
+  };
+  // 定义 emit 函数，它接收两个参数
+  // event: 事件名称
+  // payload: 传递给事件处理函数的参数
+  function emit(event, ...payload) {
+    // 根据约定对事件名称进行处理，例如 change --> onChange
+    const eventName = `on${event[0].toUpperCase() + event.slice(1)}`;
+    // 根据处理后的事件名称去 props 中寻找对应的事件处理函数
+    const handler = instance.props[eventName];
+    if (handler) {
+      // 调用事件处理函数并传递参数
+      handler(...payload);
+    } else {
+      console.error('事件不存在');
+    }
+  }
+
+  // 将 emit 函数添加到 setupContext 中，用户可以通过 setupContext 取得 emit 函数
+  const setupContext = { attrs, emit };
+  // 省略部分代码
+  const setupResult = setup(shallowReadonly(instance.props), setupContext);
+}
+```
+
+这里的父组件传递的 props 方法给子组件，即使子组件没有声明 props 来接收，也会默认传递给子组件的 props，而不是 attr 属性
+
+总结： 通过 v-on 指令或者@方法名来为组件绑定事件的情况，在经过编译后，会以 onXxx 的形式存储到 props 对象中。当 emit 函数执行时，会在 props 对象中寻找对应的事件处理函数并执行它
+
+### 组件插槽的工作原理与实现
+
+例如：
+
+template 模版
+
+MyComponent 组件里注入三个插槽内容 分别是 header、body、footer
+
+```vue
+<MyComponent>
+    <template #header>
+        <h1>我是标题</h1>
+    </template>
+     <template #body>
+        <h1>我是内容</h1>
+    </template>
+     <template #footer>
+        <h1>我是注脚</h1>
+    </template>
+</MyComponent>
+```
+
+编译成渲染函数之后如下：
+
+```js
+function render(){
+    return {
+        type: MyComponent,
+        // 组件的children 会被编译成一个对象
+        children:{
+            header(){
+                return {type:'h1',children:'我是标题'}
+            },
+            body(){
+                return {type:'section',children:'我是内容'}
+            },
+            fotter(){
+                return {type:'h1',children:'我是注脚'}
+            },
+        }，
+        component:instance
+    }
+}
+```
+
+vnode 的 type 属性值是组件对象，children 属性值是组件的插槽内容
+
+#### 子组件为什么能通过 this.$slot 来获取插槽内容？
+
+```vue
+<header>
+  <slot name="header" />
+</header>
+```
+
+子组件通过这种语法设置插槽。
+
+之所以子组件的 render 方法里可以通过 this.$slots 可以访问 vnode.children 插槽内容，是因为在挂载组件方法 mountComponent 里，vnode 是描述使用子组件的虚拟节点，vnode.type 属性值是个组件对象，是子组件的信息。
+
+vnode.type 对象包括这几个属性：render, data, setup, props 和生命周期函数。这里的 render 是 header 子组件的渲染函数。
+
+在 mountComponent 方法里，slots 初始化为 vnode.children，副作用函数有这么一行代码：render.call(renderContext, renderContext)，意味着 render 函数内可以通过 this 来访问 renderContext 对象，而 slots 属性正好在 renderContext 对象里，并且源码对 renderContext 的 getter 做了拦截：如果访问的是 $slots，返回 slots，而 slots 就是 vnode.children，即父组件传递的插槽内容
+
+以下是源码实现，调用 render 方法的时候改变 this 指向为 renderContext 上下文对象，而 renderContext 是一个 proxy 对象，所以在 render 方法内通过 this 访问属性会被 proxy 对象 renderContext 所拦截，然后访问 slots 对象的属性，而 slots 是 vnode 对象的 children 属性值，即父组件传递的插槽内容，这样就实现了 render 函数内部可以通过 this.$slot 来访问插槽内容
+
+```js
+function mountComponent(vnode, container, anchor) {
+  // 创建组件实例需要的状态和属性
+  const state = reactive({});
+  const props = vnode.props || {};
+
+  // 解析插槽内容
+  const slots = vnode.children || {};
+
+  const instance = {
+    state,
+    props: shallowReactive(props),
+    isMounted: false,
+    subTree: null,
+    // 将插槽添加到组件实例上
+    slots,
+    // 添加渲染方法
+    render: vnode.type.render,
+  };
+
+  // 创建渲染上下文代理
+  const renderContext = new Proxy(instance, {
+    get(t, k, r) {
+      const { state, props, slots } = t;
+
+      // 当 k 的值为 $slots 时，直接返回组件实例上的 slots
+      if (k === '$slots') return slots;
+
+      // 处理响应式状态、props 等访问逻辑
+      if (state.hasOwnProperty(k)) return state[k];
+      if (props.hasOwnProperty(k)) return props[k];
+    },
+    set(t, k, v, r) {
+      // 设置响应式状态
+      if (t.state.hasOwnProperty(k)) {
+        t.state[k] = v;
+        return true;
+      }
+      return false;
+    },
+  });
+
+  // 执行渲染方法
+  function setupRenderEffect() {
+    // 首次挂载
+    if (!instance.isMounted) {
+      // 调用渲染方法，传入 props 和渲染上下文
+      const subTree = instance.render.call(
+        renderContext, // this 指向代理对象
+        renderContext, // 传入 props
+        {
+          slots: instance.slots, // 传入插槽信息
+        }
+      );
+
+      // 挂载子树
+      patch(null, subTree, container, anchor);
+
+      // 标记已挂载
+      instance.isMounted = true;
+      instance.subTree = subTree;
+    } else {
+      // 更新逻辑（省略）
+      const newSubTree = instance.render.call(renderContext, renderContext, {
+        slots: instance.slots,
+      });
+
+      // 比较并更新 (patch 比较新旧子树)
+      patch(instance.subTree, newSubTree, container, anchor);
+      instance.subTree = newSubTree;
+    }
+  }
+
+  // 执行渲染effect
+  setupRenderEffect();
+}
+```
+
+### 注册组件生命周期
+
+如 onMounted 生命周期函数 在 setup 中使用 hook 会被存储到当前组件实例 currentInstacne 的 mounted 数组属性中，然后在组件挂载前进行执行
+
+```js
+function onMounted(fn) {
+  if (currentInstance) {
+    // 将生命周期函数添加到instance.mounted 数组中
+    currentInstacne.mounted.push(fn);
+  } else {
+    console.error(
+      'onMounted 函数只能在setup中调用，且不能异步执行hook，因为setup的执行一次性的，等到异步执行hook时当前的实例currentInstance就不是当前这个实例'
+    );
+  }
+}
+```
+
+#### 为什么异步注册 hook 会出现问题？
+
+使用 setTimeout
+
+```js
+setup() {
+  setTimeout(() => {
+    onMounted(() => {
+      console.log(666);
+    });
+  });
+}
+```
+
+使用 Promise.resolve().then()
+
+```js
+setup() {
+  Promise.resolve().then(() => {
+    onMounted(() => {
+      console.log(666);
+    });
+  });
+}
+```
+
+结果：
+<img src="/img/vue/异步注册hook结果.webp" alt="异步注册hook结果"  />
+
+在 setup 中注册 hook，必须是同步的，因为注册的 compositionAPI 是注册到当前执行 setup 的组件对象实例中的，如果是异步的，那么异步任务会等到 setup 这个同步任务执行完毕之后才执行，这时候 currentInstance 已经被置为 null 了，而这时候执行再执行 onMounted 等 hook 时，在 hook 中需要使用到当前实例 currentInstance 来注册 hook，这时候 currentInstance 为 null 就会出现问题了，所以不能异步注册 hook。vue 会发出警告
+
+所以注册 hook 不能异步，无论是微任务还是定时器宏任务都不行，微任务执行的时候是在当前宏任务结束之前，这时候 setup 已经执行完毕，currentInstance 为 null，已经不能给当前的组件实例注册 hook，定时器更加不行，是在下一次循环，当前栈清空之后才处理，所以等到执行 hook 的时候，currentInstance 也为 null，所以也注册不了 hook
+
+<img src="/img/vue/不能异步注册hook.webp" alt="不能异步注册hook"  />
