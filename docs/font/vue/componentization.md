@@ -816,3 +816,110 @@ setup() {
 所以注册 hook 不能异步，无论是微任务还是定时器宏任务都不行，微任务执行的时候是在当前宏任务结束之前，这时候 setup 已经执行完毕，currentInstance 为 null，已经不能给当前的组件实例注册 hook，定时器更加不行，是在下一次循环，当前栈清空之后才处理，所以等到执行 hook 的时候，currentInstance 也为 null，所以也注册不了 hook
 
 <img src="/img/vue/不能异步注册hook.webp" alt="不能异步注册hook"  />
+
+#### 组件响应式更新，onMounted 生命周期函数会被重新执行吗？
+
+```js
+function mountComponent(vnode, container, anchor) {
+  // 省略部分代码
+
+  effect(
+    () => {
+      const subTree = render.call(renderContext, renderContext);
+      if (!instance.isMounted) {
+        // 省略部分代码
+
+        // 遍历 instance.mounted 数组并逐个执行即可
+        instance.mounted &&
+          instance.mounted.forEach((hook) => hook.call(renderContext));
+      } else {
+        // 省略部分代码
+      }
+      instance.subTree = subTree;
+    },
+    {
+      scheduler: queueJob,
+    }
+  );
+}
+```
+
+不会，只有组件未被挂载(!instance.isMounted)才会执行 onMounted，每当 render 函数中的响应式变量发生变化时，effect 中的内容会被更新。当组件再次更新的时候，组件已经挂载过了，所以此时不会执行 hook 了
+
+#### vue 是异步更新的吗？为什么要异步更新呢？
+
+执行自己的 render 方法即渲染组件内容，在执行 render 方法的时候包裹一层 effect 副作用函数，这样 render 方法中使用到的响应式变量发生了变化会触发当前 effect 的执行，又因为加入了调度器，所以在响应式变量发生变化的时候，执行调度器函数，在调度器里执行 effect 回调。
+
+##### 为什么要这么做呢？
+
+假如现在在组件内的 setup 中 for 循环修改 100 次响应式变量，此时不使用调度器的话那就会触发 effect100 次，而我们只需要最后一次更新即可，没必要更新 100 次，所以我们使用调度器就可以将 for 循环 100 次修改触发执行的 effect 回调添加到微任务中去处理，用 set 集合来存储有去重作用，这样等当前宏任务 for 循环 100 次执行完成后执行微任务，此时只触发更新一次 effect
+
+#### 为什么 vue 实现组件化需要创建组件实例？
+
+类似于执行上下文对象，用来存储组件化过程所需要的数据。包括组件是否已经挂载等信息。
+有了组件实例后，在渲染副作用函数内，我们可以根据组件实例上的状态标识，来决定应该进行全新的挂载，还是应该打补丁。
+
+### 异步组件
+
+如下是一个异步加载组件的例子
+
+```js
+const loader = () => {
+  import('App.vue');
+};
+loader.then((App) => {
+  createApp(App).mount('#app');
+});
+```
+
+#### 用户通过 import 组件.then 的方法即可完成异步，为什么 vue 要在框架层面封装对异步组件的支持？
+
+为了给用户提供更好的封装支持
+
+1.  允许用户指定加载出错时要渲染的组件。
+2.  允许用户指定 Loading 组件，以及展示该组件的延迟时间。
+3.  允许用户设置加载组件的超时时长。
+4.  组件加载失败时，为用户提供重试的能力。
+    我们 defineAsyncComponent 来定义异步组件，并直接使用 components 组件选项来注册它。这样，在模板中就可以像使用普通组件一样使用异步组件了。
+
+##### 错误处理组件
+
+```js
+const AsyncComponent = defineAsyncComponent({
+  loader: () => import('./MyComponent.vue'),
+  errorComponent: ErrorComponent, // 指定加载出错时渲染的组件
+});
+```
+
+##### Loading 组件
+
+```js
+const AsyncComponent = defineAsyncComponent({
+  loader: () => import('./MyComponent.vue'),
+  loadingComponent: LoadingComponent, // 指定加载中的组件
+});
+```
+
+##### 加载超时设置
+
+```js
+const AsyncComponent = defineAsyncComponent({
+  loader: () => import('./MyComponent.vue'),
+  timeout: 3000, // 设置超时时间为 3000ms
+});
+```
+
+##### 重试机制
+
+```js
+const AsyncComponent = defineAsyncComponent({
+  loader: () => import('./MyComponent.vue'),
+  retry: true, // 允许重试加载
+});
+```
+
+#### 什么是函数式组件？和普通组件有什么区别？
+
+无状态的组件就是函数式组件，无状态就是没有 data 的组件对象，无需初始化 data 以及生命周期函数
+
+有状态的组件即有 data 等状态的组件，无状态的组件就是函数式组件，只有虚拟节点和父组件传递的属性
