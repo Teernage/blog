@@ -1,5 +1,7 @@
 # 组件化
 
+<img src="/img/vue/组件的实现原理.webp" alt="组件的实现原理"  />
+
 ### 组件渲染与响应式更新机制解析
 
 组件对象要渲染的内容在 render 方法里，render 方法返回虚拟 dom 给 renderer 渲染器进行渲染
@@ -859,6 +861,10 @@ function mountComponent(vnode, container, anchor) {
 类似于执行上下文对象，用来存储组件化过程所需要的数据。包括组件是否已经挂载等信息。
 有了组件实例后，在渲染副作用函数内，我们可以根据组件实例上的状态标识，来决定应该进行全新的挂载，还是应该打补丁。
 
+## 异步组件与函数式组件
+
+<img src="/img/vue/异步组件与函数式组件.webp"  alt="异步组件与函数式组件"  />
+
 ### 异步组件
 
 如下是一个异步加载组件的例子
@@ -918,11 +924,17 @@ const AsyncComponent = defineAsyncComponent({
 });
 ```
 
+### 函数式组件
+
 #### 什么是函数式组件？和普通组件有什么区别？
 
 无状态的组件就是函数式组件，无状态就是没有 data 的组件对象，无需初始化 data 以及生命周期函数
 
 有状态的组件即有 data 等状态的组件，无状态的组件就是函数式组件，只有虚拟节点和父组件传递的属性
+
+## 内建组件和模块
+
+<img src="/img/vue/内建组件和模块.webp"  alt="内建组件和模块"  />
 
 ### keepAlive
 
@@ -930,7 +942,7 @@ keepAlive 的本质是缓存管理，再加上特殊的挂载/卸载逻辑
 
 keepAlive 组件的实现需要渲染器层面的支持，这是因为被 keepAlive 的组件在卸载时，我们不能真正将其卸载，否则就无法维持组件的当前状态了。正确的做法是：将被 keepAlive 的组件从原容器搬运到另一个隐藏的容器中，实现‘假卸载’。当被搬运到隐藏容器中的组件需要再次被‘挂载’时，我们也不能执行真正的挂载逻辑，而应该把该组件从隐藏容器中再搬运到原容器。这个过程对应到组件的生命周期，其实就是 activeated 和 deactivated
 
-<img src="/img/vue/keeplive.webp" width='600px' alt="异步注册hook结果"  />
+<img src="/img/vue/keeplive.webp" width='600px' alt="keeplive"  />
 
 以下是源码大致实现，判断组件实例的 keepAliveCtx 是否为 true，如果是，则使用 move 函数将组件从隐藏容器中取出移动到指定容器中
 
