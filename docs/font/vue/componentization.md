@@ -923,3 +923,150 @@ const AsyncComponent = defineAsyncComponent({
 无状态的组件就是函数式组件，无状态就是没有 data 的组件对象，无需初始化 data 以及生命周期函数
 
 有状态的组件即有 data 等状态的组件，无状态的组件就是函数式组件，只有虚拟节点和父组件传递的属性
+
+### keepAlive
+
+keepAlive 的本质是缓存管理，再加上特殊的挂载/卸载逻辑
+
+keepAlive 组件的实现需要渲染器层面的支持，这是因为被 keepAlive 的组件在卸载时，我们不能真正将其卸载，否则就无法维持组件的当前状态了。正确的做法是：将被 keepAlive 的组件从原容器搬运到另一个隐藏的容器中，实现‘假卸载’。当被搬运到隐藏容器中的组件需要再次被‘挂载’时，我们也不能执行真正的挂载逻辑，而应该把该组件从隐藏容器中再搬运到原容器。这个过程对应到组件的生命周期，其实就是 activeated 和 deactivated
+
+<img src="/img/vue/keeplive.webp" width='600px' alt="异步注册hook结果"  />
+
+以下是源码大致实现，判断组件实例的 keepAliveCtx 是否为 true，如果是，则使用 move 函数将组件从隐藏容器中取出移动到指定容器中
+
+```js
+function mountComponent(vnode, container, anchor) {
+  // 省略部分代码
+  const instance = {
+    state,
+    props: shallowReactive(props),
+    isMounted: false,
+    subTree: null,
+    slots,
+    mounted: [],
+    // 只有 KeepAlive 组件的实例下会有 keepAliveCtx 属性
+    keepAliveCtx: null,
+  };
+
+  // 检查当前要挂载的组件是否是 KeepAlive 组件
+  const isKeepAlive = vnode.type.__isKeepAlive;
+  if (isKeepAlive) {
+    // 在 KeepAlive 组件实例上添加 keepAliveCtx 对象
+    instance.keepAliveCtx = {
+      // move 函数用来移动一段 vnode
+      move(vnode, container, anchor) {
+        // 本质上是将组件渲染的内容移动到指定容器中，即隐藏容器中
+        insert(vnode.component.subTree.el, container, anchor);
+      },
+      createElement,
+    };
+  }
+  // 省略部分代码
+}
+```
+
+### Teleport 组件
+
+作用：将指定的内容渲染到特定的容器中，而不受 DOM 层级的限制
+
+```js
+function render() {
+  return {
+    type: Teleport,
+    // 以普通 children 的形式代表被 Teleport 的内容
+    children: [
+      { type: 'h1', children: 'Title' },
+      { type: 'p', children: 'content' },
+    ],
+  };
+}
+```
+
+vnode.type 为 Teleport 组件
+
+vnode 组件虚拟节点的 children 即插槽内容，在 Teleport 组件这里，children 内容为指定要渲染到特定容器的内容
+
+使用
+
+```html
+<Teleport to="选择器">
+  <!-- 需要挂载到目标位置的内容 -->
+</Teleport>
+```
+
+Teleport 组件对象的源码大致实现，读取组件的 props 对象的 to 属性值即移动目标容器（Teleport 组件的插槽内容要移动到的指定容器）
+
+```js
+const Teleport = {
+  __isTeleport: true,
+  process(n1, n2, container, anchor, internals) {
+    const { patch, patchChildren, move } = internals;
+    if (!n1) {
+      // 省略部分代码
+    } else {
+      // 更新
+      patchChildren(n1, n2, container);
+      // 如果新旧 to 参数的值不同，则需要对内容进行移动
+      if (n2.props.to !== n1.props.to) {
+        // 获取新的容器
+        const newTarget =
+          typeof n2.props.to === 'string'
+            ? document.querySelector(n2.props.to)
+            : n2.props.to;
+        // 移动到新的容器
+        n2.children.forEach((c) => move(c, newTarget));
+      }
+    }
+  },
+};
+```
+
+### Transition 组件
+
+核心原理：
+
+1. 当 DOM 元素被挂载时，将动效附加到该 DOM 元素上
+2. 当 DOM 元素被卸载时，不要立即卸载 DOM 元素，而是等到附加到该 DOM 元素上的动效执行完成再卸载它
+
+#### transition 虚拟节点
+
+```js
+const transitionVnode = {
+  type: Transition,
+  children: '插槽内容，即要添加动画的dom',
+};
+```
+
+#### Transition 组件对象
+
+添加动画就是取出插槽 dom 内容，给插槽内容添加一个 transition 属性对象，这个对象里面有进入前、进入、离开等回调来对插槽内容的各个阶段进行动效处理
+
+```js
+const Transition = {
+  name: 'Transition',
+  setup(props, { slots }) {
+    return () => {
+      // 通过默认插槽获取需要过渡的元素
+      const innerVNode = slots.default();
+      // 在过渡元素的 VNode 对象上添加 transition 相应的钩子函数
+      innerVNode.transition = {
+        beforeEnter(el) {
+          // 省略部分代码
+        },
+        enter(el) {
+          // 省略部分代码
+        },
+        leave(el, performRemove) {
+          // 省略部分代码
+        },
+      };
+      // 渲染需要过渡的元素
+      return innerVNode;
+    };
+  },
+};
+```
+
+Transition 组件本身不会渲染任何额外的内容，它只是通过默认插槽读取需要过渡动画的元素，并渲染需要过渡的元素
+
+Transition 组件的作用，就是在过渡元素的虚拟节点上添加 transition 相关的钩子函数
