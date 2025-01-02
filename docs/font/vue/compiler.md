@@ -150,45 +150,45 @@ function createParserContext(content) {
 
 以下是 parseChildren 的内容，是来解析 template 模版字符串内容的，解析消费完成之后生成对应的 ast 节点
 
-```java
-function parseChildren(context, ancestors) {
-  console.log('开始解析 children');
-  const nodes: any = [];
+```js
+// function parseChildren(context, ancestors) {
+//   console.log('开始解析 children');
+//   const nodes: any = [];
 
-  while (!isEnd(context, ancestors)) {
-    let node;
-    const s = context.source;
-    // 1. 解析插值表达式
-    if (startsWith(s, '{{')) {
-      // 看看如果是 {{ 开头的话，那么就是一个插值， 那么去解析他
-      node = parseInterpolation(context);
-    }
-    //  2. 解析标签
-    else if (s[0] === '<') {
-      // 2.1结束标签
-      if (s[1] === '/') {
-        // 这里属于 edge case 可以不用关心
-        // 处理结束标签
-        if (/[a-z]/i.test(s[2])) {
-          // 匹配 </div>
-          // 需要改变 context.source 的值 -> 也就是需要移动光标
-          parseTag(context, TagType.End);
-          // 结束标签就以为这都已经处理完了，所以就可以跳出本次循环了
-          continue;
-        }
-      }
-      //  2.2 开始标签
-      else if (/[a-z]/i.test(s[1])) {
-        node = parseElement(context, ancestors);
-      }
-    }
-    if (!node) {
-      node = parseText(context);
-    }
-    nodes.push(node);
-  }
-  return nodes;
-}
+//   while (!isEnd(context, ancestors)) {
+//     let node;
+//     const s = context.source;
+//     // 1. 解析插值表达式
+//     if (startsWith(s, '{{')) {
+//       // 看看如果是 {{ 开头的话，那么就是一个插值， 那么去解析他
+//       node = parseInterpolation(context);
+//     }
+//     //  2. 解析标签
+//     else if (s[0] === '<') {
+//       // 2.1结束标签
+//       if (s[1] === '/') {
+//         // 这里属于 edge case 可以不用关心
+//         // 处理结束标签
+//         if (/[a-z]/i.test(s[2])) {
+//           // 匹配 </div>
+//           // 需要改变 context.source 的值 -> 也就是需要移动光标
+//           parseTag(context, TagType.End);
+//           // 结束标签就以为这都已经处理完了，所以就可以跳出本次循环了
+//           continue;
+//         }
+//       }
+//       //  2.2 开始标签
+//       else if (/[a-z]/i.test(s[1])) {
+//         node = parseElement(context, ancestors);
+//       }
+//     }
+//     if (!node) {
+//       node = parseText(context);
+//     }
+//     nodes.push(node);
+//   }
+//   return nodes;
+// }
 ```
 
 解析之后生成的 ast 节点的祖宗节点是 root，这是一开始就约定好的。
