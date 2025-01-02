@@ -150,7 +150,7 @@ function createParserContext(content) {
 
 以下是 parseChildren 的内容，是来解析 template 模版字符串内容的，解析消费完成之后生成对应的 ast 节点
 
-```js
+```java
 function parseChildren(context, ancestors) {
   console.log('开始解析 children');
   const nodes: any = [];
@@ -158,7 +158,6 @@ function parseChildren(context, ancestors) {
   while (!isEnd(context, ancestors)) {
     let node;
     const s = context.source;
-
     // 1. 解析插值表达式
     if (startsWith(s, '{{')) {
       // 看看如果是 {{ 开头的话，那么就是一个插值， 那么去解析他
@@ -183,14 +182,11 @@ function parseChildren(context, ancestors) {
         node = parseElement(context, ancestors);
       }
     }
-
     if (!node) {
       node = parseText(context);
     }
-
     nodes.push(node);
   }
-
   return nodes;
 }
 ```

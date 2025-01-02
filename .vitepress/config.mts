@@ -110,6 +110,7 @@ export default defineConfigWithTheme({
             { text: 'diff算法', link: '/docs/font/vue/diff' },
             { text: '组件化', link: '/docs/font/vue/componentization' },
             { text: '编译器', link: '/docs/font/vue/compiler' },
+            { text: '编译优化', link: '/docs/font/vue/compilerOptimization' },
           ],
         },
       ],
