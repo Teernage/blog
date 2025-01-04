@@ -116,6 +116,14 @@ export default defineConfigWithTheme({
           ],
         },
       ],
+      '/docs/font/frontendEngineering': [
+        {
+          text: '前端工程化',
+          items: [
+            { text: '权衡的艺术', link: '/docs/font/vue/artOfBalance' },
+          ],
+        },
+      ],
     },
 
     socialLinks: [
