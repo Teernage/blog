@@ -196,36 +196,8 @@ parseInterpolation 方法只是解析插值表达式的内容而已，{{ 中间�
 
 找到解析文本的结束索引，遍历结束 tokens 数组，看当前模版字符串中找到的第一个结束索引，找到之后文本截取最长则是在这个结束索引之前，最后消费掉模版字符串之后生成对应的文本 ast 节点
 
-```js
-function parseText(context): any {
-  console.log('解析 text', context);
-
-  // endIndex 应该看看有没有对应的 <
-  // 比如 hello</div>
-  // 像这种情况下 endIndex 就应该是在 o 这里
-  // {
-  const endTokens = ['<', '{{'];
-  let endIndex = context.source.length;
-
-  for (let i = 0; i < endTokens.length; i++) {
-    const index = context.source.indexOf(endTokens[i]);
-    // endIndex > index 是需要要 endIndex 尽可能的小
-    // 比如说：
-    // hi, {{123}} <div></div>
-    // 那么这里就应该停到 {{ 这里，而不是停到 <div 这里
-    if (index !== -1 && endIndex > index) {
-      endIndex = index;
-    }
-  }
-
-  const content = parseTextData(context, endIndex);
-
-  return {
-    type: NodeTypes.TEXT,
-    content,
-  };
-}
-```
+<!-- parseText -->
+<img src="/img/vue/parseText.webp" width='500px' alt="parseText"  />
 
 ##### 总结：parse
 
