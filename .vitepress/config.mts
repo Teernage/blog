@@ -111,6 +111,8 @@ export default defineConfigWithTheme({
             { text: '组件化', link: '/docs/font/vue/componentization' },
             { text: '编译器', link: '/docs/font/vue/compiler' },
             { text: '编译优化', link: '/docs/font/vue/compilerOptimization' },
+            { text: '服务端渲染', link: '/docs/font/vue/ssr' },
+
           ],
         },
       ],
