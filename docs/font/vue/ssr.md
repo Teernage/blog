@@ -1,5 +1,7 @@
 # 服务端渲染 SSR
 
+<img src="/img/vue/ssr思维导图.webp" alt="ssr思维导图"  />
+
 ## CSR 、 SSR 、 以及同构渲染
 
 ### CSR: 客户端渲染
