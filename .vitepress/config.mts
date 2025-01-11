@@ -120,7 +120,7 @@ export default defineConfigWithTheme({
         {
           text: '前端工程化',
           items: [
-            { text: '权衡的艺术', link: '/docs/font/vue/artOfBalance' },
+            { text: '脚手架', link: '/docs/font/frontendEngineering/cli' },
           ],
         },
       ],

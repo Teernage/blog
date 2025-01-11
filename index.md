@@ -24,7 +24,7 @@ hero:
       target: _blank
     - theme: alt
       text: 前端工程化
-      link: /docs/font/vue/artOfBalance
+      link: /docs/font/frontendEngineering/cli
       target: _blank
     - theme: brand
       text: 算法
