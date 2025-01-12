@@ -8,6 +8,8 @@
 
 个人脚手架文档地址: [https://teernage.github.io/onion-cli-homepage](https://teernage.github.io/onion-cli-homepage)
 
+<img src="/img/frontendEngineering/个人脚手架npm图.webp" alt="个人脚手架npm图" style="zoom: 100%;" />
+
 ## 从 0 到 1 搭建一个脚手架
 
 思维导图：
@@ -768,7 +770,7 @@ export async function clone(
 
 执行成功后控制台打印
 
-<img src="/img/frontendEngineering/脚手架拉取模版成功图.webp" alt="脚手架拉取模版成功图" style="zoom: 33%;" />
+<img src="/img/frontendEngineering/脚手架拉取模版成功图.webp" alt="脚手架拉取模版成功图" style="zoom: 100%;" />
 
 ### 其他
 
