@@ -32,7 +32,7 @@ hero:
       target: _blank
     - theme: alt
       text: 设计模式
-      link: /markdown-examples
+      link: /docs/font/designPattern/introduction
       target: _blank
     - theme: brand
       text: 组件库

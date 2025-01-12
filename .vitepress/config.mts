@@ -124,6 +124,15 @@ export default defineConfigWithTheme({
           ],
         },
       ],
+      '/docs/font/designPattern': [
+        {
+          text: '前端工程化',
+          items: [
+            { text: '设计模式简介', link: '/docs/font/designPattern/introduction' },
+            { text: '工厂模式应用场景', link: '/docs/font/designPattern/factory' },
+          ],
+        },
+      ],
     },
 
     socialLinks: [
