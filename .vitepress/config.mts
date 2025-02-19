@@ -80,6 +80,10 @@ export default defineConfigWithTheme({
               text: '浏览器安全',
               link: '/docs/font/HowBrowsersWork/BrowserSecurity',
             },
+            {
+              text: '插件进程的本质与Service Worker 的运行机制',
+              link: '/docs/font/HowBrowsersWork/chromeExtensionProcessAndSw',
+            },
           ],
         },
       ],
