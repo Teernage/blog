@@ -136,6 +136,7 @@ export default defineConfigWithTheme({
             { text: '工厂模式应用场景', link: '/docs/font/designPattern/factory' },
             { text: '单例模式应用场景', link: '/docs/font/designPattern/singleton' },
             { text: '发布订阅模式应用场景', link: '/docs/font/designPattern/pubSub' },
+            { text: '策略模式应用场景', link: '/docs/font/designPattern/strategy' },
           ],
         },
       ],
