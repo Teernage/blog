@@ -142,6 +142,8 @@ export default defineConfigWithTheme({
             { text: '外观模式应用场景', link: '/docs/font/designPattern/facade' },
             { text: '中介者模式应用场景', link: '/docs/font/designPattern/mediator' },
             { text: '访问者模式应用场景', link: '/docs/font/designPattern/visitor' },
+            { text: '适配器模式应用场景', link: '/docs/font/designPattern/adapter' },
+
           ],
         },
       ],
