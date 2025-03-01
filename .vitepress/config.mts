@@ -144,6 +144,7 @@ export default defineConfigWithTheme({
             { text: '访问者模式应用场景', link: '/docs/font/designPattern/visitor' },
             { text: '适配器模式应用场景', link: '/docs/font/designPattern/adapter' },
             { text: '责任链模式应用场景', link: '/docs/font/designPattern/chainOfResponsibility' },
+            { text: '命令模式应用场景', link: '/docs/font/designPattern/command' },
           ],
         },
       ],
