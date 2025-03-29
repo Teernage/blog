@@ -146,6 +146,7 @@ export default defineConfigWithTheme({
             { text: '责任链模式', link: '/docs/font/designPattern/chainOfResponsibility' },
             { text: '命令模式', link: '/docs/font/designPattern/command' },
             { text: '装饰器模式', link: '/docs/font/designPattern/decorator' },
+            { text: 'vue3中的设计模式', link: '/docs/font/designPattern/design-patterns-in-vue3' },
           ],
         },
       ],
