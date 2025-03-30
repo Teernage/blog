@@ -152,7 +152,7 @@ export default defineConfigWithTheme({
       ],
       '/docs/font/FrontEndFullLinkOptimization': [{
         text: '前端全链路优化',
-        items: []
+        items: [{ text: '理论基础', link: '/docs/font/designPattern/TheoreticalBasis' },]
       }]
     },
 

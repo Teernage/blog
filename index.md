@@ -32,7 +32,7 @@ hero:
       target: _blank
     - theme: alt
       text: 前端全链路优化
-      link: /docs/font/FrontEndFullLinkOptimization/CoreIndicators
+      link: /docs/font/FrontEndFullLinkOptimization/TheoreticalBasis
       target: _blank
     # - theme: brand
     #   text: 算法
