@@ -150,6 +150,10 @@ export default defineConfigWithTheme({
           ],
         },
       ],
+      '/docs/font/FrontEndFullLinkOptimization': [{
+        text: '前端全链路优化',
+        items: []
+      }]
     },
 
     socialLinks: [

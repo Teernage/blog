@@ -27,14 +27,18 @@ hero:
       link: /docs/font/frontendEngineering/cli
       target: _blank
     - theme: brand
+      text: 设计模式
+      link: /docs/font/designPattern/introduction
+      target: _blank
+    - theme: alt
+      text: 前端全链路优化
+      link: /docs/font/FrontEndFullLinkOptimization/CoreIndicators
+      target: _blank
+    - theme: brand
       text: 算法
       link: /api-examples
       target: _blank
     - theme: alt
-      text: 设计模式
-      link: /docs/font/designPattern/introduction
-      target: _blank
-    - theme: brand
       text: 组件库
       link: /markdown-examples
       target: _blank
