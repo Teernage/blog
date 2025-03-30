@@ -34,14 +34,14 @@ hero:
       text: 前端全链路优化
       link: /docs/font/FrontEndFullLinkOptimization/CoreIndicators
       target: _blank
-    - theme: brand
-      text: 算法
-      link: /api-examples
-      target: _blank
-    - theme: alt
-      text: 组件库
-      link: /markdown-examples
-      target: _blank
+    # - theme: brand
+    #   text: 算法
+    #   link: /api-examples
+    #   target: _blank
+    # - theme: alt
+    #   text: 组件库
+    #   link: /markdown-examples
+    #   target: _blank
 features:
   - title: 浏览器工作原理
     details: 1.前端性能优化的底层逻辑 <br/>  2.浏览器页面渲染的核心流程 <br/> 3.JavaScript运行机制解析<br/> 4.浏览器网络及安全机制解析
@@ -55,8 +55,8 @@ features:
     details: 1. 设计模式全解析：场景应用与优缺点深度剖析<br/>2.设计原则与代码重构最佳实践<br/>3.前端框架中的设计模式应用案例分析<br/>
   - title: 前端全链路监控与性能优化
     details: 1. 性能监控的核心指标 <br/>  2. 全链路监控的重要性与实施策略 <br/> 3. 解决卡顿、白屏与加载问题的实用技巧
-  - title: 计算机网络
-    details:
-  - title: 组件库
-    details:
+  # - title: 计算机网络
+  #   details:
+  # - title: 组件库
+  #   details:
 ---
