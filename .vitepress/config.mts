@@ -152,7 +152,10 @@ export default defineConfigWithTheme({
       ],
       '/docs/font/FrontEndFullLinkOptimization': [{
         text: '前端全链路优化',
-        items: [{ text: '理论基础', link: '/docs/font/designPattern/TheoreticalBasis' },]
+        items: [
+          { text: '理论基础', link: '/docs/font/FrontEndFullLinkOptimization/TheoreticalBasis' },
+          { text: '全链路数据模型设计', link: '/docs/font/FrontEndFullLinkOptimization/MinimumFieldPrinciple' },
+        ]
       }]
     },
 
