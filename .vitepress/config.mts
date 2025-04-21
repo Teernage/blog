@@ -125,6 +125,7 @@ export default defineConfigWithTheme({
           text: '前端工程化',
           items: [
             { text: '脚手架', link: '/docs/font/frontendEngineering/cli' },
+            { text: 'gitlab CI/CD', link: '/docs/font/frontendEngineering/cicd' },
           ],
         },
       ],
