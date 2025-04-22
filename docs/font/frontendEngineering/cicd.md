@@ -1,6 +1,6 @@
 # gitlab CI/CD
 
-## YAML 基础知识与语法
+### YAML 基础知识与语法
 
 1. 什么是 YAML？
    YAML 是"YAML Ain't Markup Language"（YAML 不是一种标记语言）的递归缩写。在开发这种语言时，YAML 的意思其实是："Yet Another Markup Language"（仍是一种标记语言）。
