@@ -1,6 +1,6 @@
 # gitlab CI/CD
 
-## YAML 前置知识
+## YAML 基础知识与语法
 
 1. 什么是 YAML？
    YAML 是"YAML Ain't Markup Language"（YAML 不是一种标记语言）的递归缩写。在开发这种语言时，YAML 的意思其实是："Yet Another Markup Language"（仍是一种标记语言）。
@@ -116,7 +116,64 @@ person:
     physics: 92
 ```
 
-## GitLab CI/CD 基础：三阶段部署流水线示例
+### Pipeline 流水线
+
+在每个项目中，使用名为 .gitlab-ci.yml 的 YAML 文件配置 Gitlab CI/CD 管道。在文件中可以定义一个或多个作业（Job）。每个作业必须具有唯一的名称（不能使用关键字），每个作业是独立执行的。作业定义了在约束条件下进行相关操作，每个作业至少要包含一个 script。
+
+```yaml
+job1:
+  script: 'execute-script-for-job1'
+
+job2:
+  script: 'execute-script-for-job2'
+```
+
+这里在 pipeline（流水线）中定义了两个作业，每个作业运行不同的命令。命令可以是 shell 或者脚本。
+
+下面列出保留字段，这些保留字段不能被定义为 job 名称：
+
+| 关键字        | 是否必须 | 描述                                 |
+| ------------- | -------- | ------------------------------------ |
+| image         | 否       | 用于 docker 镜像                     |
+| services      | 否       | 用于 docker 服务                     |
+| stages        | 否       | 定义构建阶段                         |
+| types         | 否       | `stages` 的别名（已废除）            |
+| before_script | 否       | 定义在每个 job 之前运行的命令        |
+| after_script  | 否       | 定义在每个 job 之后运行的命令        |
+| variable      | 否       | 定义构建变量                         |
+| cache         | 否       | 定义一组文件列表，可在后续运行中使用 |
+
+<img src="/img/frontendEngineering/gitlab流水线.webp" alt="gitlab流水线" style="zoom: 33%;" />
+
+上图是一个流水线图，build 和 deploy 是该流水线(pipeline)中的两个阶段(stages)
+
+- Pipeline(流水线) - 整个自动化过程的集合
+- Stage(阶段) - 流水线中的一个执行阶段，如上 build 和 deploy，按顺序执行
+- Job(作业) - 阶段内的具体任务，如 build 阶段中有三个并行的作业 job
+
+通常 runner 同一时间只能运行一个 job，如果要设置并发执行多个 job 就得设置
+
+修改 gitlab-runner 并发数的方法：
+
+配置文件路径示例（以默认路径为例）：
+
+```bash
+vim /home/gitlab-runner/config/config.toml
+```
+
+在文件中添加或修改如下内容：
+
+```toml
+concurrent = 5
+```
+
+这样，runner 就能同时并发执行 5 个作业了。
+
+前端本地打包和在 CI（如 GitLab Runner）上打包，本质流程是一样的：
+
+都是先安装依赖（如 npm install/yarn/pnpm），再执行项目的打包命令（如 npm run build），只是在本地的话环境是在你电脑、而 CI 打包是在 Runner 所在的服务器上。
+
+#### 三阶段部署流水线示例
 
 ```yaml
 stages:
@@ -146,33 +203,6 @@ deploy-job:
 - 每个 job 名不能重复。
 - tags 用于指定 runner。
 - 每个 job 里用 script 指令写具体命令。
-
-## Pipeline 语法 1
-
-在每个项目中，使用名为 .gitlab-ci.yml 的 YAML 文件配置 Gitlab CI/CD 管道。在文件中可以定义一个或多个作业（Job）。每个作业必须具有唯一的名称（不能使用关键字），每个作业是独立执行的。作业定义了在约束条件下进行相关操作，每个作业至少要包含一个 script。
-
-```yaml
-job1:
-  script: 'execute-script-for-job1'
-
-job2:
-  script: 'execute-script-for-job2'
-```
-
-这里在 pipeline（流水线）中定义了两个作业，每个作业运行不同的命令。命令可以是 shell 或者脚本。
-
-下面列出保留字段，这些保留字段不能被定义为 job 名称：
-
-| 关键字        | 是否必须 | 描述                                 |
-| ------------- | -------- | ------------------------------------ |
-| image         | 否       | 用于 docker 镜像                     |
-| services      | 否       | 用于 docker 服务                     |
-| stages        | 否       | 定义构建阶段                         |
-| types         | 否       | `stages` 的别名（已废除）            |
-| before_script | 否       | 定义在每个 job 之前运行的命令        |
-| after_script  | 否       | 定义在每个 job 之后运行的命令        |
-| variable      | 否       | 定义构建变量                         |
-| cache         | 否       | 定义一组文件列表，可在后续运行中使用 |
 
 ### script 中包含特殊字符处理
 
@@ -483,3 +513,272 @@ build-job:
 说明
 
 - tags 字段是在 job 下配置的，用于选择带有特定标签（如 happy_travel）的 Runner 来执行该 job。
+
+### allow_failure
+
+- allow_failure 可用于允许某个 job 失败而不影响后续 CI/CD 流程。失败的 job 不会影响 commit 状态。
+- 当允许 job 失败后，Pipeline 依然显示为成功（绿色），但会标注有 job 失败且“passed with warnings”。
+- 适用于不关键或者可选的任务，即使失败也不需要中断整个流程。
+
+示例讲解：
+
+下面例子中，job1 和 job2 并行，如果 job1 失败，也不会影响进入下一 stage（deploy 阶段），因为 job1 设置了 allow_failure: true。
+
+```yaml
+stages:
+  - test
+  - deploy
+
+job1:
+  stage: test
+  script:
+    - execute_script_that_will_fail
+  allow_failure: true # 允许 job1 失败
+
+job2:
+  stage: test
+  script:
+    - execute_script_that_will_succeed
+
+job3:
+  stage: deploy
+  script:
+    - deploy_to_staging
+```
+
+作用场景：
+
+- 运行非关键的测试或检查（如代码风格检查）
+- 执行可能偶尔失败但不应阻止部署的任务
+- 实验性功能的测试
+
+总结：
+
+- 设置 allow_failure: true 的 job 即使失败，不会让 pipeline 变红，也不阻断后续 stage。
+- 在合并请求、提交页等会看到警告提示，可手动关注和处理。
+
+### when
+
+when 用于实现发生故障时运行或即使发生故障也运行的作业。可以根据不同场景灵活控制 job 的执行时机。
+
+when 可设置的值：
+
+1. on_success
+
+- 只有前面 stages 的所有作业成功时才执行。（默认值）
+
+2. on_failure
+
+- 当前面 stages 中任意一个 job 失败后才执行。
+
+3. always
+
+- 无论前面 stages 或 jobs 状态如何都会执行。
+
+4. manual
+
+- 需要人工手动触发执行（从 GitLab 8.10 开始支持）。
+
+5. delayed -延时执行作业，需与 start_in 一起使用。
+
+示例：
+
+1. on_success（默认值）- 只有前面阶段全部成功才执行
+
+```yaml
+stages:
+  - build
+  - test
+  - deploy
+
+build-job:
+  stage: build
+  script:
+    - echo "编译代码"
+
+test-job:
+  stage: test
+  script:
+    - echo "运行测试"
+# 默认when: on_success，如果build-job失败则不会执行
+
+deploy-job:
+  stage: deploy
+  script:
+    - echo "部署应用"
+  when: on_success # 明确指定，只有build和test阶段都成功才执行
+```
+
+2. on_failure - 当前面阶段任一作业失败后执行
+
+```yaml
+stages:
+  - test
+  - notify
+
+test-app:
+  stage: test
+  script:
+    - echo "运行测试"
+    - exit 1 # 模拟测试失败
+
+notify-error:
+  stage: notify
+  script:
+    - echo "发送失败通知邮件给团队"
+  when: on_failure # 只有当test-app失败时才执行
+```
+
+3. always - 无论前面阶段结果如何都执行
+
+```yaml
+stages:
+  - deploy
+  - cleanup
+
+deploy-app:
+  stage: deploy
+  script:
+    - echo "部署应用"
+  # 可能成功也可能失败
+
+cleanup-resources:
+  stage: cleanup
+  script:
+    - echo "清理临时文件和资源"
+  when: always # 无论部署成功还是失败，都要执行清理工作
+```
+
+4. manual - 需要手动触发执行
+
+```yaml
+stages:
+  - build
+  - deploy
+
+build-job:
+  stage: build
+  script:
+    - echo "构建应用"
+
+deploy-to-production:
+  stage: deploy
+  script:
+    - echo "部署到生产环境"
+  when: manual # 需要在GitLab UI中手动点击按钮触发
+  environment: production
+```
+
+5. delayed - 延时执行，需与 start_in 结合
+
+```yaml
+stages:
+  - deploy
+  - verify
+
+deploy-job:
+  stage: deploy
+  script:
+    - echo "部署新版本"
+
+verify-deployment:
+  stage: verify
+  script:
+    - echo "验证部署是否正常"
+  when: delayed # 延时执行
+  start_in: '30 minutes' # 30分钟后自动执行
+```
+
+总结：
+
+- when 可以更精细地控制 job 的触发和执行逻辑，适用于各类 CI/CD 场景。
+- 常用组合如“失败时发送告警”、“手动触发生产部署”、“延迟发布”等。
+
+### retry: when & retry: max
+
+- retry 用于作业（job）失败时自动重试。
+  - max：最大重试次数（大于等于 0，小于等于 2）。
+  - when：需要重试的失败类型。
+
+<span style='color:red'>常见 when 错误类型</span>
+
+- always ：在发生任何故障时重试（默认）
+- unknown_failure ：因未知原因失败时
+- script_failure ：脚本执行失败时重试
+- api_failure ：API 失败重试
+- stuck_or_timeout_failure ：作业卡住或超时时重试
+- runner_system_failure ：运行系统发生故障
+- runner_unsupported ：Runner 不受支持
+- stale_schedule ：延迟的作业无法执行
+- job_execution_timeout ：超出作业最大执行时间
+- archived_failure ：作业已存档无法运行
+- unmet_prerequisites ：未完成先决条件
+- scheduler_failure ：调度程序没能将作业分配给 Runner
+- data_integrity_failure ：检测到结构完整性问题
+
+默认情况下，只要 job 失败，满足 when 类型且未超过 max 次数，就会自动重试。
+
+```yaml
+stages:
+  - build
+
+build-job:
+  stage: build
+  timeout: 3s # 作业超时时间为 3 秒
+  tags:
+    - group
+  script:
+    - echo "build"
+    - sleep 5 # 故意超时
+  retry:
+    max: 1 # 超时失败时，最多重试 1 次
+    when: job_execution_timeout
+```
+
+- 作业超时时间为 3 秒,脚本中故意休眠 5 秒，会导致作业超时失败。
+- retry 的 when 字段为 job_execution_timeout,当检测到作业运行超时时，会按照 max: 1 的设置重试 1 次（总共会执行 2 次，包括原始和重试）。
+
+总结说明
+
+- 只要脚本超时（比如这里 sleep 5 秒 > 超时时间 3 秒），就会根据 retry 设置重试 1 次。
+- retry.when 用于指定重试的错误类型，这里只在 “作业超时” 时自动重试。
+
+### timeout
+
+- 使用 timeout 为特定作业配置超时时间。如果作业运行超出了设定的时间限制，则作业失败。
+
+超时设置有三种：
+
+- 作业级（job-level）
+- 项目级（project-level）
+- runner 级（runner-level）。
+
+情况示例
+runner 超时 24 小时，项目 CI/CD 超时 2 小时
+
+- → 作业 2 小时后超时
+
+runner 未设置，项目 CI/CD 超时 2 小时
+
+- → 作业 2 小时后超时
+
+runner 超时 30 分钟，项目 CI/CD 超时 2 小时
+
+- → 作业 30 分钟后超时
+
+- 哪个级别的超时时间更短，就按哪个执行。（谁短听谁的，三个超时时间，最短生效。）
+
+配置示例
+
+```yaml
+build:
+  script: build.sh
+  timeout: 3 hours 30 minutes
+
+test:
+  script: rspec
+  timeout: 3h 30m
+```
+
+- timeout 支持多种时间格式：3 hours 30 minutes 或 3h 30m
+- 每个作业都可以单独设置自己的超时时间
