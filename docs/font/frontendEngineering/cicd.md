@@ -432,13 +432,13 @@ stages:
 variables: # pipeline 变量（管道变量）
   USER_NAME: 任我行
   GENDER: 男
-  COMPANY: 深圳市誉尚学教育咨询有限公司
+  COMPANY: xxx有限公司
 
 build-job:
   stage: build
   variables: # job 变量（作业变量）
     CITY: 北京
-    COMPANY: 深圳市誉尚学教育咨询有限公司
+    COMPANY: xxx有限公司
     USER_NAME: 张三
     GENDER: 女
   script:
