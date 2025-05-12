@@ -34,6 +34,10 @@ hero:
       text: 前端全链路优化
       link: /docs/font/FrontEndFullLinkOptimization/TheoreticalBasis
       target: _blank
+    - theme: alt
+      text: 单元测试
+      link: /docs/font/unitTest/ApiExplanation
+      target: _blank
     # - theme: brand
     #   text: 算法
     #   link: /api-examples

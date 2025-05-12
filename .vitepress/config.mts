@@ -157,6 +157,12 @@ export default defineConfigWithTheme({
           { text: '理论基础', link: '/docs/font/FrontEndFullLinkOptimization/TheoreticalBasis' },
           { text: '全链路数据模型设计', link: '/docs/font/FrontEndFullLinkOptimization/MinimumFieldPrinciple' },
         ]
+      }],
+      '/docs/font/unitTest': [{
+        text: '单元测试',
+        items: [
+          { text: 'API详解与实践技巧', link: '/docs/font/unitTest/ApiExplanation' },
+        ]
       }]
     },
 
