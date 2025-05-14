@@ -162,6 +162,8 @@ export default defineConfigWithTheme({
         text: '单元测试',
         items: [
           { text: 'API详解与实践技巧', link: '/docs/font/unitTest/ApiExplanation' },
+          { text: 'vitest的调试技巧', link: '/docs/font/unitTest/DebugMode' },
+
         ]
       }]
     },
