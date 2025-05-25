@@ -165,6 +165,8 @@ export default defineConfigWithTheme({
           { text: 'vitest的调试技巧', link: '/docs/font/unitTest/DebugMode' },
           { text: '输入和模拟数据', link: '/docs/font/unitTest/InputsAndMocking' },
           { text: '外部依赖测试策略', link: '/docs/font/unitTest/TestingExternalDependencies' },
+          { text: '状态验证和行为验证', link: '/docs/font/unitTest/BehaviorVsStateVerification' },
+          // BehaviorVsStateVerification
         ]
       }]
     },
