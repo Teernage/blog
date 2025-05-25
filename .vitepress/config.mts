@@ -164,7 +164,7 @@ export default defineConfigWithTheme({
           { text: 'API详解与实践技巧', link: '/docs/font/unitTest/ApiExplanation' },
           { text: 'vitest的调试技巧', link: '/docs/font/unitTest/DebugMode' },
           { text: '输入和模拟数据', link: '/docs/font/unitTest/InputsAndMocking' },
-          { text: '间接输入具体场景', link: '/docs/font/unitTest/IndirectInputActualCombatScenario' },
+          { text: '外部依赖测试策略', link: '/docs/font/unitTest/TestingExternalDependencies' },
         ]
       }]
     },
