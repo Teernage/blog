@@ -34,9 +34,13 @@ hero:
       text: 前端全链路优化
       link: /docs/font/FrontEndFullLinkOptimization/TheoreticalBasis
       target: _blank
-    - theme: alt
+    - theme: brand
       text: 单元测试
       link: /docs/font/unitTest/ApiExplanation
+      target: _blank
+    - theme: alt
+      text: 开发沉思
+      link: /docs/font/techMusings/MultiTabSwitchingSynchronization
       target: _blank
     # - theme: brand
     #   text: 算法
@@ -59,6 +63,8 @@ features:
     details: 1. 设计模式全解析：场景应用与优缺点深度剖析<br/>2.设计原则与代码重构最佳实践<br/>3.前端框架中的设计模式应用案例分析<br/>
   - title: 前端全链路监控与性能优化
     details: 1. 性能监控的核心指标 <br/>  2. 全链路监控的重要性与实施策略 <br/> 3. 解决卡顿、白屏与加载问题的实用技巧
+  - title: 开发沉思录
+    details: 记录开发中的实战经验，包括Bug解决、设计技巧、工程化实践等，形成可复用的技术沉淀
   # - title: 计算机网络
   #   details:
   # - title: 组件库

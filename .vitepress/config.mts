@@ -168,7 +168,13 @@ export default defineConfigWithTheme({
           { text: '状态验证和行为验证', link: '/docs/font/unitTest/BehaviorVsStateVerification' },
           // BehaviorVsStateVerification
         ]
-      }]
+      }],
+      '/docs/font/techMusings': [{
+        text: '开发沉思',
+        items: [
+          { text: '多标签切换同步', link: '/docs/font/techMusings/MultiTabSwitchingSynchronization' }
+        ]
+      }],
     },
 
     socialLinks: [
