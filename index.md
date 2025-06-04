@@ -40,7 +40,7 @@ hero:
       target: _blank
     - theme: alt
       text: 开发沉思
-      link: /docs/font/techMusings/MultiTabSwitchingSynchronization
+      link: /docs/font/techMusings/multiTabSwitchingSynchronization
       target: _blank
     # - theme: brand
     #   text: 算法
