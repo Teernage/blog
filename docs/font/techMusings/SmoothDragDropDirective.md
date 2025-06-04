@@ -208,7 +208,7 @@ e.dataTransfer.effectAllowed = 'move'
 // 问题：拖拽过程中指令更新会重置状态
 async updated(el, binding) {
   if (el._isDragging) return  // 拖拽中不允许更新！
-  // ...
+  // ....
 }
 ```
 
