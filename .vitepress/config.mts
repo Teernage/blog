@@ -173,7 +173,8 @@ export default defineConfigWithTheme({
         text: '开发沉思',
         items: [
           { text: '多标签切换同步', link: '/docs/font/techMusings/MultiTabSwitchingSynchronization' },
-          { text: '一条指令搞定丝滑拖拽列表', link: '/docs/font/techMusings/SmoothDragDropDirective' }
+          { text: '一条指令搞定丝滑拖拽列表', link: '/docs/font/techMusings/SmoothDragDropDirective' },
+          { text: 'will-change的性能优化陷阱', link: '/docs/font/techMusings/WillChangPerformanceIssues' },
         ]
       }],
     },
