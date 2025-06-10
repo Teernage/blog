@@ -166,7 +166,8 @@ export default defineConfigWithTheme({
           { text: '输入和模拟数据', link: '/docs/font/unitTest/InputsAndMocking' },
           { text: '外部依赖测试策略', link: '/docs/font/unitTest/TestingExternalDependencies' },
           { text: '状态验证和行为验证', link: '/docs/font/unitTest/BehaviorVsStateVerification' },
-          // BehaviorVsStateVerification
+          { text: '异步测试', link: '/docs/font/unitTest/VitestAsynchronousTestingPractice' },
+
         ]
       }],
       '/docs/font/techMusings': [{
@@ -175,6 +176,7 @@ export default defineConfigWithTheme({
           { text: '多标签切换同步', link: '/docs/font/techMusings/MultiTabSwitchingSynchronization' },
           { text: '一条指令搞定丝滑拖拽列表', link: '/docs/font/techMusings/SmoothDragDropDirective' },
           { text: 'will-change的性能优化陷阱', link: '/docs/font/techMusings/WillChangPerformanceIssues' },
+
         ]
       }],
     },
