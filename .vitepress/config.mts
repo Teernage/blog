@@ -177,6 +177,8 @@ export default defineConfigWithTheme({
           { text: '一条指令搞定丝滑拖拽列表', link: '/docs/font/techMusings/SmoothDragDropDirective' },
           { text: 'will-change的性能优化陷阱', link: '/docs/font/techMusings/WillChangPerformanceIssues' },
           { text: '浏览器插件实现多标签页数据同步机制', link: '/docs/font/techMusings/CrossTabSyncManager' },
+          { text: '一套队列机制+多级兜底全搞定前端图片组件', link: '/docs/font/techMusings/ImageComponentSolution' },
+
         ]
       }],
     },
