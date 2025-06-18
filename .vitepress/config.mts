@@ -176,7 +176,7 @@ export default defineConfigWithTheme({
           { text: '多标签切换同步', link: '/docs/font/techMusings/MultiTabSwitchingSynchronization' },
           { text: '一条指令搞定丝滑拖拽列表', link: '/docs/font/techMusings/SmoothDragDropDirective' },
           { text: 'will-change的性能优化陷阱', link: '/docs/font/techMusings/WillChangPerformanceIssues' },
-
+          { text: '浏览器插件实现多标签页数据同步机制', link: '/docs/font/techMusings/CrossTabSyncManager' },
         ]
       }],
     },
